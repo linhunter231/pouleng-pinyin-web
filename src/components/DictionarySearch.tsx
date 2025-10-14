@@ -1,0 +1,103 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { DictionaryEntry, lookupPinyinForSentence, PinyinSegment } from '../data/dictionary';
+
+interface DictionarySearchProps {
+  initialDictionary: DictionaryEntry[];
+}
+
+const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }) => {
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PinyinSegment[][]>([]);
+  const [currentDictionary, setCurrentDictionary] = useState<DictionaryEntry[]>([]);
+
+  useEffect(() => {
+    setCurrentDictionary(initialDictionary);
+    console.log('DictionarySearch: initialDictionary', initialDictionary.length);
+  }, [initialDictionary]);
+
+  useEffect(() => {
+    console.log('DictionarySearch: current dictionary state', currentDictionary.length);
+  }, [currentDictionary]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const lines = query.split(/\r?\n/); // Split query by newlines
+    const resultsPerLine: PinyinSegment[][] = [];
+
+    for (const line of lines) {
+      if (line.trim() === '') {
+        resultsPerLine.push([]); // Add an empty array for empty lines
+      } else {
+        const segments = lookupPinyinForSentence(currentDictionary, line);
+        resultsPerLine.push(segments);
+      }
+    }
+    setSearchResults(resultsPerLine);
+    console.log('DictionarySearch: search results', resultsPerLine.length);
+  };
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-4">莆仙话拼音查询</h1>
+      <form onSubmit={handleSearch} className="mb-4">
+        <textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="输入汉字或拼音查询..."
+          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          rows={4} // 设置为多行文本框，并指定行数
+        />
+        <button
+          type="submit"
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          查询
+        </button>
+      </form>
+
+      <div className="bg-gray-100 p-4 rounded-md">
+        {searchResults.length > 0 ? (
+          <div>
+            {searchResults.map((lineSegments, lineIndex) => (
+              <div key={lineIndex} className="mb-2">
+                {lineSegments.length > 0 ? (
+                  <div className="flex flex-wrap">
+                    {lineSegments.map((segment, segmentIndex) => {
+                      return (
+                        <div key={segmentIndex} className="flex flex-col items-center mx-1 min-w-[30px]">
+                          {segment.type === 'char' ? (
+                            <span className="font-bold text-lg text-center w-full">{segment.char}</span>
+                          ) : (
+                            <span className="font-bold text-lg text-center w-full">{segment.word}</span>
+                          )}
+                          <div className="flex flex-col items-center text-blue-700 text-lg text-center w-full min-h-[1.5em]">
+                            {segment.pinyin.map((p, i) => (
+                              <span key={i}>{p || ''}</span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="h-6"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>请输入查询内容或未找到结果。</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DictionarySearch;
