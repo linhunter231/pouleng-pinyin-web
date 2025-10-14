@@ -16,7 +16,7 @@ interface WordPinyinPair {
   pinyin: string[];
 }
 
-export type PinyinSegment = CharacterPinyinPair | WordPinyinPair;
+export type PinyinSegment = (CharacterPinyinPair | WordPinyinPair) & { selectedPinyinIndex?: number };
 
 export function parseDictionaryFile(fileContent: string): DictionaryEntry[] {
   const lines = fileContent.split('\n');
@@ -84,7 +84,7 @@ export function lookupPinyinForSentence(dictionary: DictionaryEntry[], sentence:
 
     if (bestMatchLength > 0) {
       // Found a word/character match (could be single char or multi-char word)
-      results.push({ type: 'word', word: bestMatchWord, pinyin: bestMatchPinyins });
+      results.push({ type: 'word', word: bestMatchWord, pinyin: bestMatchPinyins, selectedPinyinIndex: 0 });
       currentIndex += bestMatchLength;
     } else {
       // If no match found for any length, treat the current character as a single segment
@@ -95,7 +95,7 @@ export function lookupPinyinForSentence(dictionary: DictionaryEntry[], sentence:
         const traditionalChar = converter(char);
         entry = dictionaryMap.get(traditionalChar);
       }
-      results.push({ type: 'char', char: char, pinyin: entry ? entry.pinyin : [''] }); // If no pinyin, provide an empty array
+      results.push({ type: 'char', char: char, pinyin: entry ? entry.pinyin : [''], selectedPinyinIndex: 0 }); // If no pinyin, provide an empty array
       currentIndex++;
     }
   }

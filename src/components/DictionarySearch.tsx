@@ -43,6 +43,17 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
     console.log('DictionarySearch: search results', resultsPerLine.length);
   };
 
+  const handlePinyinClick = (lineIndex: number, segmentIndex: number, pinyinIndex: number) => {
+    setSearchResults(prevResults => {
+      const newResults = [...prevResults];
+      const segment = newResults[lineIndex][segmentIndex];
+      if (segment) {
+        segment.selectedPinyinIndex = pinyinIndex;
+      }
+      return newResults;
+    });
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">莆仙话拼音查询</h1>
@@ -70,6 +81,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                 {lineSegments.length > 0 ? (
                   <div className="flex flex-wrap">
                     {lineSegments.map((segment, segmentIndex) => {
+                      const selectedPinyin = segment.pinyin[segment.selectedPinyinIndex || 0];
+                      const otherPinyins = segment.pinyin.filter((_, i) => i !== (segment.selectedPinyinIndex || 0));
+
                       return (
                         <div key={segmentIndex} className="flex flex-col items-center mx-1 min-w-[30px]">
                           {segment.type === 'char' ? (
@@ -78,8 +92,20 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                             <span className="font-bold text-lg text-center w-full">{segment.word}</span>
                           )}
                           <div className="flex flex-col items-center text-blue-700 text-lg text-center w-full min-h-[1.5em]">
-                            {segment.pinyin.map((p, i) => (
-                              <span key={i}>{p || ''}</span>
+                            <span
+                              className="cursor-pointer font-bold text-blue-700"
+                              onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.selectedPinyinIndex || 0)}
+                            >
+                              {selectedPinyin || ''}
+                            </span>
+                            {otherPinyins.map((p, i) => (
+                              <span
+                                key={i}
+                                className="cursor-pointer text-gray-500"
+                                onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(p))}
+                              >
+                                {p || ''}
+                              </span>
                             ))}
                           </div>
                         </div>
