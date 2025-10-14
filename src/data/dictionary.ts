@@ -1,23 +1,23 @@
-export interface DictionaryEntry {
+import * as OpenCC from 'opencc-js';
+
+interface DictionaryEntry {
   word: string;
-  pinyin: string[]; // Changed to string array
+  pinyin: string[];
+  definition: string;
 }
 
-export interface CharacterPinyinPair {
-  type: 'char';
+interface CharacterPinyinPair {
   char: string;
-  pinyin: string[]; // Changed to string array
+  pinyin: string[];
 }
 
-export interface WordPinyinPair {
-  type: 'word';
+interface WordPinyinPair {
   word: string;
-  pinyin: string[]; // Changed to string array
+  pinyin: string[];
 }
 
 export type PinyinSegment = CharacterPinyinPair | WordPinyinPair;
 
-// 从词典文件解析数据
 export function parseDictionaryFile(fileContent: string): DictionaryEntry[] {
   const lines = fileContent.split('\n');
   const dictionaryMap = new Map<string, DictionaryEntry>();
@@ -32,16 +32,23 @@ export function parseDictionaryFile(fileContent: string): DictionaryEntry[] {
     if (parts.length >= 2) {
       const word = parts[0];
       const pinyin = parts[1];
+      const definition = parts.slice(2).join('\t');
 
       if (dictionaryMap.has(word)) {
-        dictionaryMap.get(word)?.pinyin.push(pinyin);
+        // If word already exists, add new pinyin to its pinyin array
+        const existingEntry = dictionaryMap.get(word)!;
+        if (!existingEntry.pinyin.includes(pinyin)) {
+          existingEntry.pinyin.push(pinyin);
+        }
       } else {
-        dictionaryMap.set(word, { word, pinyin: [pinyin] });
+        dictionaryMap.set(word, { word, pinyin: [pinyin], definition });
       }
     }
   }
   return Array.from(dictionaryMap.values());
 }
+
+const converter = OpenCC.Converter({ from: 'cn', to: 't' });
 
 export function lookupPinyinForSentence(dictionary: DictionaryEntry[], sentence: string): PinyinSegment[] {
   const results: PinyinSegment[] = [];
@@ -60,10 +67,16 @@ export function lookupPinyinForSentence(dictionary: DictionaryEntry[], sentence:
     // Try to find the longest match starting from currentIndex
     for (let i = currentIndex; i < sentence.length; i++) {
       const subSentence = sentence.substring(currentIndex, i + 1);
-      const entry = dictionaryMap.get(subSentence);
+      let entry = dictionaryMap.get(subSentence);
+
+      if (!entry) {
+        // If not found with simplified, try with traditional
+        const traditionalSubSentence = converter(subSentence);
+        entry = dictionaryMap.get(traditionalSubSentence);
+      }
 
       if (entry && subSentence.length > bestMatchLength) {
-        bestMatchWord = entry.word;
+        bestMatchWord = subSentence; // Keep the original simplified word for display
         bestMatchPinyins = entry.pinyin;
         bestMatchLength = subSentence.length;
       }
@@ -76,7 +89,12 @@ export function lookupPinyinForSentence(dictionary: DictionaryEntry[], sentence:
     } else {
       // If no match found for any length, treat the current character as a single segment
       const char = sentence[currentIndex];
-      const entry = dictionaryMap.get(char);
+      let entry = dictionaryMap.get(char);
+
+      if (!entry) {
+        const traditionalChar = converter(char);
+        entry = dictionaryMap.get(traditionalChar);
+      }
       results.push({ type: 'char', char: char, pinyin: entry ? entry.pinyin : [''] }); // If no pinyin, provide an empty array
       currentIndex++;
     }
