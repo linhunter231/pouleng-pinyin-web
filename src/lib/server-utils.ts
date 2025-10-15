@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { DictionaryEntry, parseDictionaryFile } from '../data/dictionary';
 
-export async function loadDictionary(): Promise<DictionaryEntry[]> {
-  const dictionariesPath = path.join(process.cwd(), 'src', 'data', 'dictionaries');
+ export async function loadDictionary(): Promise<DictionaryEntry[]> {
+  const dictionariesPath = path.join(process.cwd(), 'public', 'dictionaries');
   let allEntries: DictionaryEntry[] = [];
 
   try {
