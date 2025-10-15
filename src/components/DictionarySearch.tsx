@@ -84,6 +84,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       </form>
 
       <div className="bg-gray-100 p-4 rounded-md">
+        {searchResults.length > 0 && (
+          <p className="text-sm text-gray-500 mb-2">提示：点击拼音可选择不同的读音。</p>
+        )}
         {searchResults.length > 0 ? (
           <div>
             {searchResults.map((lineSegments, lineIndex) => (
@@ -141,6 +144,13 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         ) : (
           <p>请输入查询内容或未找到结果。</p>
         )}
+      </div>
+
+      <div className="mt-4 text-sm text-gray-600">
+        数据来源于此项目: <a href="https://github.com/Yaryou/HinghuaFactory" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">HinghuaFactory</a>
+      </div>
+      <div className="mt-2 text-sm text-gray-600">
+        友情链接: <a href="https://hinghwa.cn/Home" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">興化語記：莆仙方言在线工具</a>
       </div>
     </div>
   );
