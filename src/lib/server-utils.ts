@@ -27,7 +27,7 @@ export async function loadDictionary(): Promise<DictionaryEntry[]> {
         dictionaryContent = fileContent.substring(endOfHeaderIndex + 3);
       }
 
-      const parsedEntries = parseDictionaryFile(dictionaryContent);
+      const parsedEntries = await parseDictionaryFile(dictionaryContent);
 
       console.log('解析文件:', file, ', 条目数:', parsedEntries.length);
       allEntries = allEntries.concat(parsedEntries);

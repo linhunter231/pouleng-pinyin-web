@@ -11,6 +11,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PinyinSegment[][]>([]);
   const [currentDictionary, setCurrentDictionary] = useState<DictionaryEntry[]>([]);
+  const [showAllPinyins, setShowAllPinyins] = useState(true); // New state for toggling pinyin display
 
   useEffect(() => {
     setCurrentDictionary(initialDictionary);
@@ -65,12 +66,21 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={4} // 设置为多行文本框，并指定行数
         />
-        <button
-          type="submit"
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          查询
-        </button>
+        <div className="flex items-center mt-2">
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            查询
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAllPinyins(!showAllPinyins)}
+            className="ml-2 px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            {showAllPinyins ? '隐藏多余拼音' : '显示所有拼音'}
+          </button>
+        </div>
       </form>
 
       <div className="bg-gray-100 p-4 rounded-md">
@@ -97,14 +107,24 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.selectedPinyinIndex || 0)}
                             >
                               {selectedPinyin || ''}
+                              {segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                                <span className="tag">
+                                  ({segment.dictionaryMatchWord})
+                                </span>
+                              )}
                             </span>
-                            {otherPinyins.map((p, i) => (
+                            {showAllPinyins && otherPinyins.map((p, i) => (
                               <span
                                 key={i}
                                 className="cursor-pointer text-gray-500"
                                 onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(p))}
                               >
                                 {p || ''}
+                                {segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                                  <span className="tag">
+                                    ({segment.dictionaryMatchWord})
+                                  </span>
+                                )}
                               </span>
                             ))}
                           </div>
