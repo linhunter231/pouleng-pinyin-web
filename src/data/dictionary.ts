@@ -83,7 +83,7 @@ const isSimplified = (text: string): boolean => {
   return t2sConverter(converter(text)) === text;
 };
 
-export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence: string): PinyinSegment[] => {
+export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence: string, globalReadingPreference: '文' | '白' | undefined): PinyinSegment[] => {
   const results: PinyinSegment[] = [];
   let currentIndex = 0;
 
@@ -184,8 +184,8 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
                 } else if (baiDuPinyin) {
                   charReadingType = '白';
                 }
-                // Sort the pinyins for the individual character based on its own preference
-                const sortedCharPinyins = sortPinyins(charEntry.pinyin, charReadingType);
+                // Sort the pinyins for the individual character based on the global preference
+                const sortedCharPinyins = sortPinyins(charEntry.pinyin, globalReadingPreference);
                 charPinyinDetails.push({ char: char, pinyinDetails: sortedCharPinyins });
             } else {
                 // If character not found in dictionary, use the pinyin from the word segment
@@ -206,8 +206,8 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         });
         } else {
             // Handle single character word match (bestMatchLength === 1)
-            // Sort pinyins for single character words
-            const sortedPinyins = sortPinyins(bestMatchPinyins, bestMatchReadingType);
+            // Sort pinyins for single character words using the global preference
+            const sortedPinyins = sortPinyins(bestMatchPinyins, globalReadingPreference);
             results.push({
                 type: 'word',
                 word: bestMatchWord,
@@ -293,8 +293,8 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           }
         }
       }
-      // Sort pinyins for single characters that are not part of a multi-character word match
-      const sortedCharPinyins = sortPinyins(charPinyins, charReadingType);
+      // Sort pinyins for single characters that are not part of a multi-character word match using the global preference
+      const sortedCharPinyins = sortPinyins(charPinyins, globalReadingPreference);
       results.push({
         type: 'char',
         char: char,

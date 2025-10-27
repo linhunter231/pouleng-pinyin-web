@@ -17,12 +17,16 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
 
   useEffect(() => {
     setCurrentDictionary(initialDictionary);
-    console.log('DictionarySearch: initialDictionary', initialDictionary.length);
   }, [initialDictionary]);
 
+  // Effect to read readingPreference from URL on initial load
   useEffect(() => {
-    console.log('DictionarySearch: current dictionary state', currentDictionary.length);
-  }, [currentDictionary]);
+    const params = new URLSearchParams(window.location.search);
+    const urlReadingPreference = params.get('readingPreference');
+    if (urlReadingPreference === '文' || urlReadingPreference === '白') {
+      setReadingPreference(urlReadingPreference);
+    }
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +48,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         if (line.trim() === '') {
           resultsPerLine.push([]); // Add an empty array for empty lines
         } else {
-          let segments = lookupPinyinForSentence(currentDictionary, line);
+          let segments = lookupPinyinForSentence(currentDictionary, line, readingPreference);
           // Sort pinyins within each segment based on preference
           segments = segments.map(segment => ({
             ...segment,
@@ -214,11 +218,14 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               <div className="flex justify-center w-full"> {/* Row for pinyins */}
                                 {segment.charPinyinDetails.map((charDetail, charIndex) => (
                                   <div key={charIndex} className="flex flex-col items-center mx-1 min-w-[30px]"> {/* Container for each character's pinyins */}
-                                    {charDetail.pinyinDetails.map((pinyinItem, pinyinIndex) => (
-                                      <div key={`${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
-                                        {pinyinItem.value}{pinyinItem.type && pinyinItem.type !== 'unknown' && pinyinItem.type !== 'pouleng' && `(${pinyinItem.type})`}
-                                      </div>
-                                    ))}
+                                    {charDetail.pinyinDetails.map((pinyinItem, pinyinIndex) => {
+                                      const displayMarker = showAllPinyins && pinyinItem.type && (pinyinItem.type === '文' || pinyinItem.type === '白');
+                                      return (
+                                        <div key={`${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
+                                          {pinyinItem.value}{displayMarker && `(${pinyinItem.type})`}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 ))}
                               </div>
