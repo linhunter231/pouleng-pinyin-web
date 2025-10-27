@@ -118,6 +118,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                   <div className="flex flex-wrap">
                     {lineSegments.map((segment, segmentIndex) => {
                       const selectedPinyin = segment.pinyin[segment.selectedPinyinIndex || 0];
+                      const displaySelectedPinyin = showAllPinyins ? selectedPinyin : selectedPinyin.replace(/\(文\)|\(白\)/g, '');
                       const otherPinyins = segment.pinyin.filter((_, i) => i !== (segment.selectedPinyinIndex || 0));
 
                       return (
@@ -132,9 +133,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               className="cursor-pointer font-bold text-blue-700"
                               onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.selectedPinyinIndex || 0)}
                             >
-                              {selectedPinyin || ''}
+                              {displaySelectedPinyin || ''}
                               {segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
-                                <span className="tag">
+                                <span className="tag text-gray-500 ml-1 text-sm">
                                   ({segment.dictionaryMatchWord})
                                 </span>
                               )}
@@ -147,7 +148,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               >
                                 {p || ''}
                                 {segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
-                                  <span className="tag">
+                                  <span className="tag text-gray-500 ml-1 text-sm">
                                     ({segment.dictionaryMatchWord})
                                   </span>
                                 )}
@@ -166,7 +167,6 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                           entry.pinyin.map((pinyinItem, pinyinIndex) => (
                                             <div key={`${char}-${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
                                               {pinyinItem}
-                                              {segment.readingType && `(${segment.readingType})`}
                                             </div>
                                           ))
                                         ))
