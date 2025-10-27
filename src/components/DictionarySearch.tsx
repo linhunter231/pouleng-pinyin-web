@@ -134,7 +134,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.selectedPinyinIndex || 0)}
                             >
                               {displaySelectedPinyin || ''}
-                              {segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                              {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
                                 <span className="tag text-gray-500 ml-1 text-sm">
                                   ({segment.dictionaryMatchWord})
                                 </span>
@@ -147,7 +147,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                 onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(p))}
                               >
                                 {p || ''}
-                                {segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                                {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
                                   <span className="tag text-gray-500 ml-1 text-sm">
                                     ({segment.dictionaryMatchWord})
                                   </span>
