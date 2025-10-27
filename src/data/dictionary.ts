@@ -13,8 +13,15 @@ export const parseDictionaryFile = async (fileContent: string): Promise<Dictiona
     const parts = trimmedLine.split('\t');
     if (parts.length >= 2) {
       const word = parts[0];
-      const pinyin = parts[1];
+      let pinyin = parts[1];
       const definition = parts.slice(2).join('\t');
+
+      // 根据定义添加 (文) 或 (白)
+      if (definition.includes('文读')) {
+        pinyin += '(文)';
+      } else if (definition.includes('白读')) {
+        pinyin += '(白)';
+      }
 
       if (localDictionaryMap.has(word)) {
         const existingEntry = localDictionaryMap.get(word)!;
@@ -55,6 +62,7 @@ export interface PinyinSegment {
   dictionaryMatchWord?: string;
   isInputSimplified?: boolean; // New field
   isDictionaryMatchSimplified?: boolean; // New field
+  readingType?: '文' | '白'; // New field to indicate reading type
 }
 
 // Function to check if a character/word is simplified
@@ -78,6 +86,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
     let bestMatchDictionaryWord: string | undefined; // This will be the word found in the dictionary (could be traditional)
     let bestMatchIsInputSimplified: boolean | undefined;
     let bestMatchIsDictionaryMatchSimplified: boolean | undefined;
+    let bestMatchReadingType: '文' | '白' | undefined; // New variable for reading type
   
     // Try to match multi-character words first
     // Iterate from longest possible word to shortest (1 character)
@@ -129,6 +138,13 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         bestMatchDictionaryWord = candidateDictionaryWord;
         bestMatchIsInputSimplified = isCurrentInputSimplified;
         bestMatchIsDictionaryMatchSimplified = isSimplified(candidateDictionaryWord || '');
+
+        // Determine reading type from definition
+        if (candidateEntry.definition.includes('文读')) {
+          bestMatchReadingType = '文';
+        } else if (candidateEntry.definition.includes('白读')) {
+          bestMatchReadingType = '白';
+        }
         break; // Found the longest match, break from inner loop
       }
     }
@@ -142,6 +158,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         dictionaryMatchWord: bestMatchDictionaryWord,
         isInputSimplified: bestMatchIsInputSimplified,
         isDictionaryMatchSimplified: bestMatchIsDictionaryMatchSimplified,
+        readingType: bestMatchReadingType, // Assign reading type
       });
       currentIndex += bestMatchLength;
     } else {
@@ -151,6 +168,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
       let charPinyins: string[] = [''];
       let charDictionaryMatchWord: string | undefined;
       let charIsDictionaryMatchSimplified: boolean | undefined;
+      let charReadingType: '文' | '白' | undefined; // New variable for reading type
   
       // Check for direct character match
       if (localDictionaryMap.has(char)) {
@@ -158,6 +176,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         charPinyins = entry.pinyin;
         charDictionaryMatchWord = char;
         charIsDictionaryMatchSimplified = isSimplified(char);
+        if (entry.definition.includes('文读')) {
+          charReadingType = '文';
+        } else if (entry.definition.includes('白读')) {
+          charReadingType = '白';
+        }
       }
   
       // If no direct match, or if the input is simplified and we can find a traditional equivalent
@@ -169,6 +192,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           if (!charDictionaryMatchWord) {
             charDictionaryMatchWord = traditionalChar;
             charIsDictionaryMatchSimplified = isSimplified(traditionalChar);
+            if (entry.definition.includes('文读')) {
+              charReadingType = '文';
+            } else if (entry.definition.includes('白读')) {
+              charReadingType = '白';
+            }
           }
         }
       }
@@ -182,6 +210,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           if (!charDictionaryMatchWord) {
             charDictionaryMatchWord = simplifiedChar;
             charIsDictionaryMatchSimplified = isSimplified(simplifiedChar);
+            if (entry.definition.includes('文读')) {
+              charReadingType = '文';
+            } else if (entry.definition.includes('白读')) {
+              charReadingType = '白';
+            }
           }
         }
       }
@@ -194,6 +227,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         dictionaryMatchWord: charDictionaryMatchWord,
         isInputSimplified: isCharSimplified,
         isDictionaryMatchSimplified: charIsDictionaryMatchSimplified,
+        readingType: charReadingType, // Assign reading type
       });
       currentIndex++;
     }

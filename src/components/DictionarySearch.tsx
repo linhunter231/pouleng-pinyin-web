@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DictionaryEntry, lookupPinyinForSentence, searchDictionary } from '../data/dictionary';
+import { DictionaryEntry, lookupPinyinForSentence, searchDictionary, PinyinSegment } from '../data/dictionary';
 
 interface DictionarySearchProps {
   initialDictionary: DictionaryEntry[];
@@ -154,7 +154,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               </span>
                             ))}
                           </div>
-                          {segment.type === 'word' && segment.word.length > 1 && showAllPinyins && (
+                          {segment.type === 'word' && segment.word && segment.word.length > 1 && showAllPinyins && (
                             <div className="flex flex-col items-center mt-2 text-sm text-gray-600"> {/* Outer container for char-pinyin pairs */}
                               <div className="flex justify-center w-full"> {/* Row for pinyins */}
                                 {segment.word.split('').map((char, charIndex) => {
@@ -164,8 +164,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                       {charEntries && charEntries.length > 0 ? (
                                         charEntries.map((entry) => (
                                           entry.pinyin.map((pinyinItem, pinyinIndex) => (
-                                            <div key={`${entry.id}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
+                                            <div key={`${char}-${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
                                               {pinyinItem}
+                                              {segment.readingType && `(${segment.readingType})`}
                                             </div>
                                           ))
                                         ))
