@@ -1,6 +1,11 @@
 import * as OpenCC from 'opencc-js';
 
-export const parseDictionaryFile = async (fileContent: string): Promise<DictionaryEntry[]> => {
+export interface PinyinDetail {
+  value: string;
+  type: '文' | '白' | 'pouleng' | 'unknown';
+}
+
+export const parseDictionaryFile = async (fileContent: string, sourceType: 'NewDictionary' | 'pouleng'): Promise<DictionaryEntry[]> => {
   const lines = fileContent.split('\n');
   const localDictionaryMap = new Map<string, DictionaryEntry>();
 
@@ -13,37 +18,45 @@ export const parseDictionaryFile = async (fileContent: string): Promise<Dictiona
     const parts = trimmedLine.split('\t');
     if (parts.length >= 2) {
       const word = parts[0];
-      let pinyin = parts[1];
+      let pinyinValue = parts[1];
       const definition = parts.slice(2).join('\t');
 
-      // 根据定义添加 (文) 或 (白)
-      if (definition.includes('文读')) {
-        pinyin += '(文)';
-      } else if (definition.includes('白读')) {
-        pinyin += '(白)';
+      let pinyinType: '文' | '白' | 'pouleng' | 'unknown' = 'unknown';
+
+      if (sourceType === 'NewDictionary') {
+        if (definition.includes('文读')) {
+          pinyinType = '文';
+        } else if (definition.includes('白读')) {
+          pinyinType = '白';
+        }
+      } else if (sourceType === 'pouleng') {
+        pinyinType = 'pouleng';
       }
+
+      const pinyinDetail: PinyinDetail = { value: pinyinValue, type: pinyinType };
 
       if (localDictionaryMap.has(word)) {
         const existingEntry = localDictionaryMap.get(word)!;
-        if (!existingEntry.pinyin.includes(pinyin)) {
-          existingEntry.pinyin.push(pinyin);
+        // Check if pinyinDetail with same value and type already exists
+        if (!existingEntry.pinyin.some(p => p.value === pinyinDetail.value && p.type === pinyinDetail.type)) {
+          existingEntry.pinyin.push(pinyinDetail);
         }
       } else {
-        localDictionaryMap.set(word, { word, pinyin: [pinyin], definition });
+        localDictionaryMap.set(word, { word, pinyin: [pinyinDetail], definition });
       }
     }
   }
   return Array.from(localDictionaryMap.values());
 };
 
-export const loadDictionary = async (filePath: string): Promise<DictionaryEntry[]> => {
+export const loadDictionary = async (filePath: string, sourceType: 'NewDictionary' | 'pouleng'): Promise<DictionaryEntry[]> => {
   try {
     const response = await fetch(filePath);
     if (!response.ok) {
       throw new Error(`Failed to load dictionary from ${filePath}: ${response.statusText}`);
     }
     const fileContent = await response.text();
-    return parseDictionaryFile(fileContent);
+    return parseDictionaryFile(fileContent, sourceType);
   } catch (error) {
     console.error(`Error loading dictionary from ${filePath}:`, error);
     return [];
@@ -57,7 +70,7 @@ export interface PinyinSegment {
   type: 'char' | 'word';
   char?: string; // For type 'char'
   word?: string; // For type 'word'
-  pinyin: string[];
+  pinyin: PinyinDetail[];
   selectedPinyinIndex: number;
   dictionaryMatchWord?: string;
   isInputSimplified?: boolean; // New field
@@ -81,7 +94,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
 
   while (currentIndex < sentence.length) {
     let bestMatchLength = 0;
-    let bestMatchPinyins: string[] = []; // Initialize as empty array
+    let bestMatchPinyins: PinyinDetail[] = []; // Initialize as empty array
     let bestMatchWord: string = ''; // This will be the original input word segment
     let bestMatchDictionaryWord: string | undefined; // This will be the word found in the dictionary (could be traditional)
     let bestMatchIsInputSimplified: boolean | undefined;
@@ -140,9 +153,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         bestMatchIsDictionaryMatchSimplified = isSimplified(candidateDictionaryWord || '');
 
         // Determine reading type from definition
-        if (candidateEntry.definition.includes('文读')) {
+        const wenDuPinyin = candidateEntry.pinyin.find(p => p.type === '文');
+        const baiDuPinyin = candidateEntry.pinyin.find(p => p.type === '白');
+        if (wenDuPinyin) {
           bestMatchReadingType = '文';
-        } else if (candidateEntry.definition.includes('白读')) {
+        } else if (baiDuPinyin) {
           bestMatchReadingType = '白';
         }
         break; // Found the longest match, break from inner loop
@@ -165,7 +180,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
       // If no word match, treat as single character
       const char = sentence[currentIndex];
       const isCharSimplified = isSimplified(char);
-      let charPinyins: string[] = [''];
+      let charPinyins: PinyinDetail[] = [];
       let charDictionaryMatchWord: string | undefined;
       let charIsDictionaryMatchSimplified: boolean | undefined;
       let charReadingType: '文' | '白' | undefined; // New variable for reading type
@@ -176,9 +191,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         charPinyins = entry.pinyin;
         charDictionaryMatchWord = char;
         charIsDictionaryMatchSimplified = isSimplified(char);
-        if (entry.definition.includes('文读')) {
+        const wenDuPinyin = entry.pinyin.find(p => p.type === '文');
+        const baiDuPinyin = entry.pinyin.find(p => p.type === '白');
+        if (wenDuPinyin) {
           charReadingType = '文';
-        } else if (entry.definition.includes('白读')) {
+        } else if (baiDuPinyin) {
           charReadingType = '白';
         }
       }
@@ -188,13 +205,20 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
       if (traditionalChar !== char) {
         if (localDictionaryMap.has(traditionalChar)) {
           const entry = localDictionaryMap.get(traditionalChar)!;
-          charPinyins = Array.from(new Set([...charPinyins, ...entry.pinyin]));
+          // Merge pinyins, ensuring no duplicates based on value and type
+          for (const p of entry.pinyin) {
+            if (!charPinyins.some(cp => cp.value === p.value && cp.type === p.type)) {
+              charPinyins.push(p);
+            }
+          }
           if (!charDictionaryMatchWord) {
             charDictionaryMatchWord = traditionalChar;
             charIsDictionaryMatchSimplified = isSimplified(traditionalChar);
-            if (entry.definition.includes('文读')) {
+            const wenDuPinyin = entry.pinyin.find(p => p.type === '文');
+            const baiDuPinyin = entry.pinyin.find(p => p.type === '白');
+            if (wenDuPinyin) {
               charReadingType = '文';
-            } else if (entry.definition.includes('白读')) {
+            } else if (baiDuPinyin) {
               charReadingType = '白';
             }
           }
@@ -206,13 +230,20 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
       if (simplifiedChar !== char) {
         if (localDictionaryMap.has(simplifiedChar)) {
           const entry = localDictionaryMap.get(simplifiedChar)!;
-          charPinyins = Array.from(new Set([...charPinyins, ...entry.pinyin]));
+          // Merge pinyins, ensuring no duplicates based on value and type
+          for (const p of entry.pinyin) {
+            if (!charPinyins.some(cp => cp.value === p.value && cp.type === p.type)) {
+              charPinyins.push(p);
+            }
+          }
           if (!charDictionaryMatchWord) {
             charDictionaryMatchWord = simplifiedChar;
             charIsDictionaryMatchSimplified = isSimplified(simplifiedChar);
-            if (entry.definition.includes('文读')) {
+            const wenDuPinyin = entry.pinyin.find(p => p.type === '文');
+            const baiDuPinyin = entry.pinyin.find(p => p.type === '白');
+            if (wenDuPinyin) {
               charReadingType = '文';
-            } else if (entry.definition.includes('白读')) {
+            } else if (baiDuPinyin) {
               charReadingType = '白';
             }
           }
@@ -222,7 +253,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
       results.push({
         type: 'char',
         char: char,
-        pinyin: charPinyins.length > 0 ? charPinyins : [''], // Ensure at least one empty pinyin if none found
+        pinyin: charPinyins.length > 0 ? charPinyins : [{ value: '', type: 'unknown' }], // Ensure at least one empty pinyin if none found
         selectedPinyinIndex: 0,
         dictionaryMatchWord: charDictionaryMatchWord,
         isInputSimplified: isCharSimplified,
@@ -239,12 +270,12 @@ export const searchDictionary = (query: string, dictionary: DictionaryEntry[]): 
   const lowerCaseQuery = query.toLowerCase();
   return dictionary.filter(entry =>
     entry.word.includes(query) ||
-    entry.pinyin.some(p => p.toLowerCase().includes(lowerCaseQuery))
+    entry.pinyin.some(p => p.value.toLowerCase().includes(lowerCaseQuery))
   );
 };
 
 export interface DictionaryEntry {
   word: string;
-  pinyin: string[];
+  pinyin: PinyinDetail[];
   definition: string;
 }

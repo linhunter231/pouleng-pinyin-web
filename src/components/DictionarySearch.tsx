@@ -13,6 +13,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [wordSearchResults, setWordSearchResults] = useState<DictionaryEntry[]>([]); // For direct word/pinyin search
   const [currentDictionary, setCurrentDictionary] = useState<DictionaryEntry[]>([]);
   const [showAllPinyins, setShowAllPinyins] = useState(true); // New state for toggling pinyin display
+  const [readingPreference, setReadingPreference] = useState<'文' | '白' | undefined>(undefined); // New state for reading preference
 
   useEffect(() => {
     setCurrentDictionary(initialDictionary);
@@ -43,7 +44,12 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         if (line.trim() === '') {
           resultsPerLine.push([]); // Add an empty array for empty lines
         } else {
-          const segments = lookupPinyinForSentence(currentDictionary, line);
+          let segments = lookupPinyinForSentence(currentDictionary, line);
+          // Sort pinyins within each segment based on preference
+          segments = segments.map(segment => ({
+            ...segment,
+            pinyin: sortPinyins(segment.pinyin, readingPreference),
+          }));
           resultsPerLine.push(segments);
         }
       }
@@ -64,6 +70,30 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       }
       return newResults;
     });
+  };
+
+  const sortPinyins = (pinyins: PinyinDetail[], preference: '文' | '白' | undefined): PinyinDetail[] => {
+    if (!preference) {
+      return pinyins; // No preference, return original order
+    }
+
+    const sorted = [...pinyins].sort((a, b) => {
+      // Preference type comes first
+      if (a.type === preference && b.type !== preference) return -1;
+      if (a.type !== preference && b.type === preference) return 1;
+
+      // pouleng.dict comes second
+      if (a.type === 'pouleng' && b.type !== 'pouleng' && b.type !== preference) return -1;
+      if (a.type !== 'pouleng' && b.type === 'pouleng' && a.type !== preference) return 1;
+
+      // Other type comes last (the non-preferred NewDictionary type)
+      const otherPreference = preference === '文' ? '白' : '文';
+      if (a.type === otherPreference && b.type !== otherPreference && b.type !== 'pouleng' && b.type !== preference) return 1;
+      if (a.type !== otherPreference && b.type === otherPreference && a.type !== 'pouleng' && a.type !== preference) return -1;
+
+      return 0; // Maintain original order if types are the same or no specific rule applies
+    });
+    return sorted;
   };
 
   return (
@@ -91,6 +121,42 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
           >
             {showAllPinyins ? '隐藏多余拼音' : '显示所有拼音'}
           </button>
+          <div className="ml-4 flex items-center">
+            <span className="mr-2">拼音偏好:</span>
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                className="form-radio"
+                name="readingPreference"
+                value="文"
+                checked={readingPreference === '文'}
+                onChange={() => setReadingPreference('文')}
+              />
+              <span className="ml-1">文读</span>
+            </label>
+            <label className="inline-flex items-center ml-2">
+              <input
+                type="radio"
+                className="form-radio"
+                name="readingPreference"
+                value="白"
+                checked={readingPreference === '白'}
+                onChange={() => setReadingPreference('白')}
+              />
+              <span className="ml-1">白读</span>
+            </label>
+            <label className="inline-flex items-center ml-2">
+              <input
+                type="radio"
+                className="form-radio"
+                name="readingPreference"
+                value="无"
+                checked={readingPreference === undefined}
+                onChange={() => setReadingPreference(undefined)}
+              />
+              <span className="ml-1">无偏好</span>
+            </label>
+          </div>
         </div>
       </form>
 
@@ -101,8 +167,8 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
               <div key={index} className="mb-2 p-2 border rounded-md bg-white">
                 <p className="font-bold text-lg">{entry.word}</p>
                 <div className="flex flex-wrap gap-1">
-                  {entry.pinyin.map((p, pIndex) => (
-                    <span key={pIndex} className="text-blue-700 text-lg">{p}</span>
+                  {entry.pinyin.map((pinyinDetail, pIndex) => (
+                    <span key={pIndex} className="text-blue-700 text-lg">{pinyinDetail.value}</span>
                   ))}
                 </div>
                 <p className="text-gray-600">{entry.definition}</p>
@@ -117,9 +183,20 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                 {lineSegments.length > 0 ? (
                   <div className="flex flex-wrap">
                     {lineSegments.map((segment, segmentIndex) => {
-                      const selectedPinyin = segment.pinyin[segment.selectedPinyinIndex || 0];
-                      const displaySelectedPinyin = showAllPinyins ? selectedPinyin : selectedPinyin.replace(/\(文\)|\(白\)/g, '');
-                      const otherPinyins = segment.pinyin.filter((_, i) => i !== (segment.selectedPinyinIndex || 0));
+                      const selectedPinyinDetail = segment.pinyin[segment.selectedPinyinIndex || 0];
+                      let displaySelectedPinyinValue = selectedPinyinDetail.value;
+
+                      // Add the marker if it's a '文' or '白' type
+                      if (selectedPinyinDetail.type === '文' || selectedPinyinDetail.type === '白') {
+                        displaySelectedPinyinValue += `(${selectedPinyinDetail.type})`;
+                      }
+
+                      // If 'hide redundant pinyins' is active, remove the marker for '文' or '白' types
+                      if (!showAllPinyins && (selectedPinyinDetail.type === '文' || selectedPinyinDetail.type === '白')) {
+                        displaySelectedPinyinValue = displaySelectedPinyinValue.replace(/\(文\)|\(白\)/g, '');
+                      }
+
+                      const otherPinyinDetails = segment.pinyin.filter((_, i) => i !== (segment.selectedPinyinIndex || 0));
 
                       return (
                         <div key={segmentIndex} className="flex flex-col items-center mx-1 min-w-[30px]">
@@ -133,27 +210,33 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               className="cursor-pointer font-bold text-blue-700"
                               onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.selectedPinyinIndex || 0)}
                             >
-                              {displaySelectedPinyin || ''}
+                              {displaySelectedPinyinValue || ''}
                               {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
                                 <span className="tag text-gray-500 ml-1 text-sm">
                                   ({segment.dictionaryMatchWord})
                                 </span>
                               )}
                             </span>
-                            {showAllPinyins && otherPinyins.map((p, i) => (
-                              <span
-                                key={i}
-                                className="cursor-pointer text-gray-500"
-                                onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(p))}
-                              >
-                                {p || ''}
-                                {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
-                                  <span className="tag text-gray-500 ml-1 text-sm">
-                                    ({segment.dictionaryMatchWord})
-                                  </span>
-                                )}
-                              </span>
-                            ))}
+                            {showAllPinyins && otherPinyinDetails.map((pinyinDetail, i) => {
+                              let displayOtherPinyinValue = pinyinDetail.value;
+                              if (pinyinDetail.type === '文' || pinyinDetail.type === '白') {
+                                displayOtherPinyinValue += `(${pinyinDetail.type})`;
+                              }
+                              return (
+                                <span
+                                  key={i}
+                                  className="cursor-pointer text-gray-500"
+                                  onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(pinyinDetail))}
+                                >
+                                  {displayOtherPinyinValue || ''}
+                                  {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                                    <span className="tag text-gray-500 ml-1 text-sm">
+                                      ({segment.dictionaryMatchWord})
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
                           </div>
                           {segment.type === 'word' && segment.word && segment.word.length > 1 && showAllPinyins && (
                             <div className="flex flex-col items-center mt-2 text-sm text-gray-600"> {/* Outer container for char-pinyin pairs */}
@@ -166,7 +249,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                         charEntries.map((entry) => (
                                           entry.pinyin.map((pinyinItem, pinyinIndex) => (
                                             <div key={`${char}-${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
-                                              {pinyinItem}
+                                              {pinyinItem.value}
                                             </div>
                                           ))
                                         ))

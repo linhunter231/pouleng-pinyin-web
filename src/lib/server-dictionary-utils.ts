@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { parseDictionaryFile, DictionaryEntry } from '../data/dictionary';
+import { parseDictionaryFile, DictionaryEntry, PinyinDetail } from '../data/dictionary';
 
 export const loadServerDictionaries = async (dictionaryFiles: string[]): Promise<DictionaryEntry[]> => {
   const mergedDictionaryMap = new Map<string, DictionaryEntry>();
@@ -10,13 +10,23 @@ export const loadServerDictionaries = async (dictionaryFiles: string[]): Promise
     try {
       const fullPath = path.join(rootDirectory, 'public', filePath);
       const fileContent = await fs.readFile(fullPath, 'utf-8');
-      const currentDictionaryEntries = await parseDictionaryFile(fileContent);
+
+      let sourceType: 'NewDictionary' | 'pouleng' = 'NewDictionary'; // Default to NewDictionary
+      if (filePath.includes('Pouleng')) {
+        sourceType = 'pouleng';
+      }
+
+      const currentDictionaryEntries = await parseDictionaryFile(fileContent, sourceType);
 
       for (const entry of currentDictionaryEntries) {
         if (mergedDictionaryMap.has(entry.word)) {
           const existingEntry = mergedDictionaryMap.get(entry.word)!;
-          // Merge pinyins, ensuring uniqueness
-          existingEntry.pinyin = Array.from(new Set([...existingEntry.pinyin, ...entry.pinyin]));
+          // Merge pinyins, ensuring uniqueness based on value and type
+          for (const pinyinDetail of entry.pinyin) {
+            if (!existingEntry.pinyin.some(p => p.value === pinyinDetail.value && p.type === pinyinDetail.type)) {
+              existingEntry.pinyin.push(pinyinDetail);
+            }
+          }
           // Optionally, merge definitions if needed, or keep the first one
           // For now, we'll keep the first definition encountered for a word
         } else {
