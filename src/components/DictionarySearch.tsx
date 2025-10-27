@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DictionaryEntry, lookupPinyinForSentence, searchDictionary, PinyinSegment } from '../data/dictionary';
+import { DictionaryEntry, lookupPinyinForSentence, searchDictionary, PinyinSegment, sortPinyins } from '../data/dictionary';
 
 interface DictionarySearchProps {
   initialDictionary: DictionaryEntry[];
@@ -70,30 +70,6 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       }
       return newResults;
     });
-  };
-
-  const sortPinyins = (pinyins: PinyinDetail[], preference: '文' | '白' | undefined): PinyinDetail[] => {
-    if (!preference) {
-      return pinyins; // No preference, return original order
-    }
-
-    const sorted = [...pinyins].sort((a, b) => {
-      // Preference type comes first
-      if (a.type === preference && b.type !== preference) return -1;
-      if (a.type !== preference && b.type === preference) return 1;
-
-      // pouleng.dict comes second
-      if (a.type === 'pouleng' && b.type !== 'pouleng' && b.type !== preference) return -1;
-      if (a.type !== 'pouleng' && b.type === 'pouleng' && a.type !== preference) return 1;
-
-      // Other type comes last (the non-preferred NewDictionary type)
-      const otherPreference = preference === '文' ? '白' : '文';
-      if (a.type === otherPreference && b.type !== otherPreference && b.type !== 'pouleng' && b.type !== preference) return 1;
-      if (a.type !== otherPreference && b.type === otherPreference && a.type !== 'pouleng' && a.type !== preference) return -1;
-
-      return 0; // Maintain original order if types are the same or no specific rule applies
-    });
-    return sorted;
   };
 
   return (
@@ -187,13 +163,8 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                       let displaySelectedPinyinValue = selectedPinyinDetail.value;
 
                       // Add the marker if it's a '文' or '白' type
-                      if (selectedPinyinDetail.type === '文' || selectedPinyinDetail.type === '白') {
+                      if (showAllPinyins && (selectedPinyinDetail.type === '文' || selectedPinyinDetail.type === '白')) {
                         displaySelectedPinyinValue += `(${selectedPinyinDetail.type})`;
-                      }
-
-                      // If 'hide redundant pinyins' is active, remove the marker for '文' or '白' types
-                      if (!showAllPinyins && (selectedPinyinDetail.type === '文' || selectedPinyinDetail.type === '白')) {
-                        displaySelectedPinyinValue = displaySelectedPinyinValue.replace(/\(文\)|\(白\)/g, '');
                       }
 
                       const otherPinyinDetails = segment.pinyin.filter((_, i) => i !== (segment.selectedPinyinIndex || 0));
@@ -219,7 +190,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                             </span>
                             {showAllPinyins && otherPinyinDetails.map((pinyinDetail, i) => {
                               let displayOtherPinyinValue = pinyinDetail.value;
-                              if (pinyinDetail.type === '文' || pinyinDetail.type === '白') {
+                              if (showAllPinyins && (pinyinDetail.type === '文' || pinyinDetail.type === '白')) {
                                 displayOtherPinyinValue += `(${pinyinDetail.type})`;
                               }
                               return (
@@ -238,27 +209,18 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               );
                             })}
                           </div>
-                          {segment.type === 'word' && segment.word && segment.word.length > 1 && showAllPinyins && (
+                          {segment.type === 'word' && segment.word && segment.word.length > 1 && showAllPinyins && segment.charPinyinDetails && (
                             <div className="flex flex-col items-center mt-2 text-sm text-gray-600"> {/* Outer container for char-pinyin pairs */}
                               <div className="flex justify-center w-full"> {/* Row for pinyins */}
-                                {segment.word.split('').map((char, charIndex) => {
-                                  const charEntries = currentDictionary.filter(entry => entry.word === char);
-                                  return (
-                                    <div key={charIndex} className="flex flex-col items-center mx-1 min-w-[30px]"> {/* Container for each character's pinyins */}
-                                      {charEntries && charEntries.length > 0 ? (
-                                        charEntries.map((entry) => (
-                                          entry.pinyin.map((pinyinItem, pinyinIndex) => (
-                                            <div key={`${char}-${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
-                                              {pinyinItem.value}
-                                            </div>
-                                          ))
-                                        ))
-                                      ) : (
-                                        <div className="text-xs text-gray-500 min-h-[1.2em]"></div> // Placeholder for no pinyin
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                {segment.charPinyinDetails.map((charDetail, charIndex) => (
+                                  <div key={charIndex} className="flex flex-col items-center mx-1 min-w-[30px]"> {/* Container for each character's pinyins */}
+                                    {charDetail.pinyinDetails.map((pinyinItem, pinyinIndex) => (
+                                      <div key={`${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
+                                        {pinyinItem.value}{pinyinItem.type && pinyinItem.type !== 'unknown' && pinyinItem.type !== 'pouleng' && `(${pinyinItem.type})`}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}

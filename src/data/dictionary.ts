@@ -23,13 +23,12 @@ export const parseDictionaryFile = async (fileContent: string, sourceType: 'NewD
 
       let pinyinType: '文' | '白' | 'pouleng' | 'unknown' = 'unknown';
 
-      if (sourceType === 'NewDictionary') {
-        if (definition.includes('文读')) {
-          pinyinType = '文';
-        } else if (definition.includes('白读')) {
-          pinyinType = '白';
-        }
-      } else if (sourceType === 'pouleng') {
+      // Prioritize '文读' or '白读' detection from definition
+      if (definition.includes('文读')) {
+        pinyinType = '文';
+      } else if (definition.includes('白读')) {
+        pinyinType = '白';
+      } else if (sourceType === 'pouleng') { // Fallback to 'pouleng' if no specific type found and source is pouleng
         pinyinType = 'pouleng';
       }
 
@@ -76,6 +75,7 @@ export interface PinyinSegment {
   isInputSimplified?: boolean; // New field
   isDictionaryMatchSimplified?: boolean; // New field
   readingType?: '文' | '白'; // New field to indicate reading type
+  charPinyinDetails?: { char: string; pinyinDetails: PinyinDetail[] }[]; // New field for word segments
 }
 
 // Function to check if a character/word is simplified
@@ -100,22 +100,22 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
     let bestMatchIsInputSimplified: boolean | undefined;
     let bestMatchIsDictionaryMatchSimplified: boolean | undefined;
     let bestMatchReadingType: '文' | '白' | undefined; // New variable for reading type
-  
+
     // Try to match multi-character words first
     // Iterate from longest possible word to shortest (1 character)
     for (let len = sentence.length - currentIndex; len >= 1; len--) {
       const currentInputWord = sentence.substring(currentIndex, currentIndex + len);
       const isCurrentInputSimplified = isSimplified(currentInputWord);
-  
+
       let candidateEntry: DictionaryEntry | undefined;
       let candidateDictionaryWord: string | undefined;
-  
+
       // Attempt 1: Direct match with the input word (simplified or traditional as-is)
       if (localDictionaryMap.has(currentInputWord)) {
         candidateEntry = localDictionaryMap.get(currentInputWord)!;
         candidateDictionaryWord = currentInputWord;
       }
-  
+
       // Attempt 2: If no direct match, or if the input is simplified and we can find a traditional equivalent
       const traditionalInputWord = converter(currentInputWord);
       if (traditionalInputWord !== currentInputWord) { // Only try traditional if it's actually different
@@ -129,7 +129,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           }
         }
       }
-  
+
       // Attempt 3: If no match yet, and input is traditional, try simplified
       const simplifiedInputWord = t2sConverter(currentInputWord);
       if (simplifiedInputWord !== currentInputWord) { // Only try simplified if it's actually different
@@ -143,7 +143,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           }
         }
       }
-  
+
       if (candidateEntry) {
         bestMatchLength = len;
         bestMatchWord = currentInputWord;
@@ -163,18 +163,62 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
         break; // Found the longest match, break from inner loop
       }
     }
-  
+
     if (bestMatchLength > 0) {
-      results.push({
-        type: 'word',
-        word: bestMatchWord,
-        pinyin: bestMatchPinyins,
-        selectedPinyinIndex: 0,
-        dictionaryMatchWord: bestMatchDictionaryWord,
-        isInputSimplified: bestMatchIsInputSimplified,
-        isDictionaryMatchSimplified: bestMatchIsDictionaryMatchSimplified,
-        readingType: bestMatchReadingType, // Assign reading type
-      });
+      // If it's a multi-character word, we need to enrich pinyin details for each character
+      if (bestMatchLength > 1) {
+        const characters = bestMatchWord.split(''); // e.g., ['君', '子']
+        const individualPinyins = bestMatchPinyins[0].value.split(' '); // Assuming the first pinyin detail is the primary one
+        const charPinyinDetails: { char: string; pinyinDetails: PinyinDetail[] }[] = [];
+
+        for (let i = 0; i < characters.length; i++) {
+            const char = characters[i];
+            const charEntry = localDictionaryMap.get(char);
+            if (charEntry) {
+                // Determine reading type for the individual character
+                let charReadingType: '文' | '白' | undefined;
+                const wenDuPinyin = charEntry.pinyin.find(p => p.type === '文');
+                const baiDuPinyin = charEntry.pinyin.find(p => p.type === '白');
+                if (wenDuPinyin) {
+                  charReadingType = '文';
+                } else if (baiDuPinyin) {
+                  charReadingType = '白';
+                }
+                // Sort the pinyins for the individual character based on its own preference
+                const sortedCharPinyins = sortPinyins(charEntry.pinyin, charReadingType);
+                charPinyinDetails.push({ char: char, pinyinDetails: sortedCharPinyins });
+            } else {
+                // If character not found in dictionary, use the pinyin from the word segment
+                charPinyinDetails.push({ char: char, pinyinDetails: [{ value: individualPinyins[i], type: 'unknown' }] });
+            }
+        }
+
+        results.push({
+            type: 'word',
+            word: bestMatchWord,
+            pinyin: bestMatchPinyins,
+            selectedPinyinIndex: 0,
+            dictionaryMatchWord: bestMatchDictionaryWord,
+            isInputSimplified: bestMatchIsInputSimplified,
+            isDictionaryMatchSimplified: bestMatchIsDictionaryMatchSimplified,
+            readingType: bestMatchReadingType,
+            charPinyinDetails: charPinyinDetails,
+        });
+        } else {
+            // Handle single character word match (bestMatchLength === 1)
+            // Sort pinyins for single character words
+            const sortedPinyins = sortPinyins(bestMatchPinyins, bestMatchReadingType);
+            results.push({
+                type: 'word',
+                word: bestMatchWord,
+                pinyin: sortedPinyins,
+                selectedPinyinIndex: 0,
+                dictionaryMatchWord: bestMatchDictionaryWord,
+                isInputSimplified: bestMatchIsInputSimplified,
+                isDictionaryMatchSimplified: bestMatchIsDictionaryMatchSimplified,
+                readingType: bestMatchReadingType,
+            });
+        }
       currentIndex += bestMatchLength;
     } else {
       // If no word match, treat as single character
@@ -183,7 +227,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
       let charPinyins: PinyinDetail[] = [];
       let charDictionaryMatchWord: string | undefined;
       let charIsDictionaryMatchSimplified: boolean | undefined;
-      let charReadingType: '文' | '白' | undefined; // New variable for reading type
+      let charReadingType: '文' | '白' | undefined;
   
       // Check for direct character match
       if (localDictionaryMap.has(char)) {
@@ -249,16 +293,17 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           }
         }
       }
-  
+      // Sort pinyins for single characters that are not part of a multi-character word match
+      const sortedCharPinyins = sortPinyins(charPinyins, charReadingType);
       results.push({
         type: 'char',
         char: char,
-        pinyin: charPinyins.length > 0 ? charPinyins : [{ value: '', type: 'unknown' }], // Ensure at least one empty pinyin if none found
+        pinyin: sortedCharPinyins.length > 0 ? sortedCharPinyins : [{ value: '', type: 'unknown' }], // Ensure at least one empty pinyin if none found
         selectedPinyinIndex: 0,
         dictionaryMatchWord: charDictionaryMatchWord,
         isInputSimplified: isCharSimplified,
         isDictionaryMatchSimplified: charIsDictionaryMatchSimplified,
-        readingType: charReadingType, // Assign reading type
+        readingType: charReadingType,
       });
       currentIndex++;
     }
@@ -279,3 +324,27 @@ export interface DictionaryEntry {
   pinyin: PinyinDetail[];
   definition: string;
 }
+
+export const sortPinyins = (pinyins: PinyinDetail[], preference: '文' | '白' | undefined): PinyinDetail[] => {
+  if (!preference) {
+    return pinyins; // No preference, return original order
+  }
+
+  const sorted = [...pinyins].sort((a, b) => {
+    // Preference type comes first
+    if (a.type === preference && b.type !== preference) return -1;
+    if (a.type !== preference && b.type === preference) return 1;
+
+    // pouleng.dict comes second
+    if (a.type === 'pouleng' && b.type !== 'pouleng' && b.type !== preference) return -1;
+    if (a.type !== 'pouleng' && b.type === 'pouleng' && a.type !== preference) return 1;
+
+    // Other type comes last (the non-preferred NewDictionary type)
+    const otherPreference = preference === '文' ? '白' : '文';
+    if (a.type === otherPreference && b.type !== otherPreference && b.type !== 'pouleng' && b.type !== preference) return 1;
+    if (a.type !== otherPreference && b.type === otherPreference && a.type !== 'pouleng' && a.type !== preference) return -1;
+
+    return 0; // Maintain original order if types are the same or no specific rule applies
+  });
+  return sorted;
+};
