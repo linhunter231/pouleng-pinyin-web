@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DictionaryEntry, lookupPinyinForSentence, PinyinSegment } from '../data/dictionary';
+import { DictionaryEntry, lookupPinyinForSentence, searchDictionary } from '../data/dictionary';
 
 interface DictionarySearchProps {
   initialDictionary: DictionaryEntry[];
@@ -9,7 +9,8 @@ interface DictionarySearchProps {
 
 const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }) => {
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<PinyinSegment[][]>([]);
+  const [searchResults, setSearchResults] = useState<PinyinSegment[][]>([]); // For sentence segmentation
+  const [wordSearchResults, setWordSearchResults] = useState<DictionaryEntry[]>([]); // For direct word/pinyin search
   const [currentDictionary, setCurrentDictionary] = useState<DictionaryEntry[]>([]);
   const [showAllPinyins, setShowAllPinyins] = useState(true); // New state for toggling pinyin display
 
@@ -26,22 +27,32 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
     e.preventDefault();
     if (!query.trim()) {
       setSearchResults([]);
+      setWordSearchResults([]);
       return;
     }
 
-    const lines = query.split(/\r?\n/); // Split query by newlines
-    const resultsPerLine: PinyinSegment[][] = [];
+    // Heuristic to determine if it's a sentence or a single word/character search
+    const isSentenceSearch = query.trim().includes(' ') || query.trim().length > 1 && !/^\p{Script=Han}$/u.test(query.trim());
 
-    for (const line of lines) {
-      if (line.trim() === '') {
-        resultsPerLine.push([]); // Add an empty array for empty lines
-      } else {
-        const segments = lookupPinyinForSentence(currentDictionary, line);
-        resultsPerLine.push(segments);
+    if (isSentenceSearch) {
+      setWordSearchResults([]); // Clear word search results
+      const lines = query.split(/\r?\n/); // Split query by newlines
+      const resultsPerLine: PinyinSegment[][] = [];
+
+      for (const line of lines) {
+        if (line.trim() === '') {
+          resultsPerLine.push([]); // Add an empty array for empty lines
+        } else {
+          const segments = lookupPinyinForSentence(currentDictionary, line);
+          resultsPerLine.push(segments);
+        }
       }
+      setSearchResults(resultsPerLine);
+    } else {
+      setSearchResults([]); // Clear sentence search results
+      const results = searchDictionary(query, currentDictionary);
+      setWordSearchResults(results);
     }
-    setSearchResults(resultsPerLine);
-    console.log('DictionarySearch: search results', resultsPerLine.length);
   };
 
   const handlePinyinClick = (lineIndex: number, segmentIndex: number, pinyinIndex: number) => {
@@ -84,11 +95,23 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       </form>
 
       <div className="bg-gray-100 p-4 rounded-md">
-        {searchResults.length > 0 && (
-          <p className="text-sm text-gray-500 mb-2">提示：点击拼音可选择不同的读音。</p>
-        )}
-        {searchResults.length > 0 ? (
+        {wordSearchResults.length > 0 ? (
           <div>
+            {wordSearchResults.map((entry, index) => (
+              <div key={index} className="mb-2 p-2 border rounded-md bg-white">
+                <p className="font-bold text-lg">{entry.word}</p>
+                <div className="flex flex-wrap gap-1">
+                  {entry.pinyin.map((p, pIndex) => (
+                    <span key={pIndex} className="text-blue-700 text-lg">{p}</span>
+                  ))}
+                </div>
+                <p className="text-gray-600">{entry.definition}</p>
+              </div>
+            ))}
+          </div>
+        ) : searchResults.length > 0 ? (
+          <>
+            <p className="text-sm text-gray-500 mb-2">提示：点击拼音可选择不同的读音。</p>
             {searchResults.map((lineSegments, lineIndex) => (
               <div key={lineIndex} className="mb-2">
                 {lineSegments.length > 0 ? (
@@ -140,7 +163,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                 )}
               </div>
             ))}
-          </div>
+          </>
         ) : (
           <p>请输入查询内容或未找到结果。</p>
         )}
