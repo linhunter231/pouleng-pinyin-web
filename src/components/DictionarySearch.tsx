@@ -151,7 +151,6 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                     <span key={pIndex} className="text-blue-700 text-lg">{pinyinDetail.value}</span>
                   ))}
                 </div>
-                <p className="text-gray-600">{entry.definition}</p>
               </div>
             ))}
           </div>
