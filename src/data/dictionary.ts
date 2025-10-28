@@ -42,7 +42,7 @@ export const parseDictionaryFile = async (fileContent: string, sourceType: 'NewD
           existingEntry.pinyin.push(pinyinDetail);
         }
       } else {
-        localDictionaryMap.set(word, { word, pinyin: [pinyinDetail], definition });
+        localDictionaryMap.set(word, { word, pinyin: [pinyinDetail] });
       }
     }
   }
