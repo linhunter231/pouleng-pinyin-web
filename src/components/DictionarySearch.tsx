@@ -184,6 +184,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                             <span
                               className="cursor-pointer font-bold text-blue-700"
                               onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.selectedPinyinIndex || 0)}
+                              title={selectedPinyinDetail.definition}
                             >
                               {displaySelectedPinyinValue || ''}
                               {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
@@ -202,6 +203,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                   key={i}
                                   className="cursor-pointer text-gray-500"
                                   onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(pinyinDetail))}
+                                  title={pinyinDetail.definition}
                                 >
                                   {displayOtherPinyinValue || ''}
                                   {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
@@ -221,7 +223,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                     {charDetail.pinyinDetails.map((pinyinItem, pinyinIndex) => {
                                       const displayMarker = showAllPinyins && pinyinItem.type && (pinyinItem.type === '文' || pinyinItem.type === '白');
                                       return (
-                                        <div key={`${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]">
+                                        <div key={`${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]" title={pinyinItem.definition}>
                                           {pinyinItem.value}{displayMarker && `(${pinyinItem.type})`}
                                         </div>
                                       );

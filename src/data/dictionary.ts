@@ -3,6 +3,7 @@ import * as OpenCC from 'opencc-js';
 export interface PinyinDetail {
   value: string;
   type: '文' | '白' | 'pouleng' | 'unknown';
+  definition?: string; // Add this field
 }
 
 export const parseDictionaryFile = async (fileContent: string, sourceType: 'NewDictionary' | 'pouleng'): Promise<DictionaryEntry[]> => {
@@ -32,7 +33,7 @@ export const parseDictionaryFile = async (fileContent: string, sourceType: 'NewD
         pinyinType = 'pouleng';
       }
 
-      const pinyinDetail: PinyinDetail = { value: pinyinValue, type: pinyinType };
+      const pinyinDetail: PinyinDetail = { value: pinyinValue, type: pinyinType, definition: definition };
 
       if (localDictionaryMap.has(word)) {
         const existingEntry = localDictionaryMap.get(word)!;
@@ -125,7 +126,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
             candidateDictionaryWord = traditionalInputWord;
           } else if (candidateEntry.word === currentInputWord) { // If direct match was found, but traditional also exists, merge pinyins
             const traditionalEntry = localDictionaryMap.get(traditionalInputWord)!;
-            candidateEntry.pinyin = Array.from(new Set([...candidateEntry.pinyin, ...traditionalEntry.pinyin]));
+            for (const p of traditionalEntry.pinyin) {
+              if (!candidateEntry.pinyin.some(cp => cp.value === p.value && cp.type === p.type && cp.definition === p.definition)) {
+                candidateEntry.pinyin.push(p);
+              }
+            }
           }
         }
       }
@@ -139,7 +144,11 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
             candidateDictionaryWord = simplifiedInputWord;
           } else if (candidateEntry.word === currentInputWord) { // If direct match was found, but simplified also exists, merge pinyins
             const simplifiedEntry = localDictionaryMap.get(simplifiedInputWord)!;
-            candidateEntry.pinyin = Array.from(new Set([...candidateEntry.pinyin, ...simplifiedEntry.pinyin]));
+            for (const p of simplifiedEntry.pinyin) {
+              if (!candidateEntry.pinyin.some(cp => cp.value === p.value && cp.type === p.type && cp.definition === p.definition)) {
+                candidateEntry.pinyin.push(p);
+              }
+            }
           }
         }
       }
@@ -251,7 +260,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           const entry = localDictionaryMap.get(traditionalChar)!;
           // Merge pinyins, ensuring no duplicates based on value and type
           for (const p of entry.pinyin) {
-            if (!charPinyins.some(cp => cp.value === p.value && cp.type === p.type)) {
+            if (!charPinyins.some(cp => cp.value === p.value && cp.type === p.type && cp.definition === p.definition)) {
               charPinyins.push(p);
             }
           }
@@ -276,7 +285,7 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
           const entry = localDictionaryMap.get(simplifiedChar)!;
           // Merge pinyins, ensuring no duplicates based on value and type
           for (const p of entry.pinyin) {
-            if (!charPinyins.some(cp => cp.value === p.value && cp.type === p.type)) {
+            if (!charPinyins.some(cp => cp.value === p.value && cp.type === p.type && cp.definition === p.definition)) {
               charPinyins.push(p);
             }
           }
@@ -322,7 +331,6 @@ export const searchDictionary = (query: string, dictionary: DictionaryEntry[]): 
 export interface DictionaryEntry {
   word: string;
   pinyin: PinyinDetail[];
-  definition: string;
 }
 
 export const sortPinyins = (pinyins: PinyinDetail[], preference: '文' | '白' | undefined): PinyinDetail[] => {
