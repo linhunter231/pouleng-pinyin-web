@@ -198,7 +198,10 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               {showAllPinyins && selectedPinyinDetail && selectedPinyinDetail.fromSimplified && segment.simplified && (
                                 <span className="tag text-gray-500 ml-1 text-sm">({segment.simplified})</span>
                               )}
-                              {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                              {showAllPinyins && segment.dictionaryMatchWord &&
+                                (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord &&
+                                segment.dictionaryMatchWord !== segment.traditional &&
+                                segment.dictionaryMatchWord !== segment.simplified && (
                                 <span className="tag text-gray-500 ml-1 text-sm">
                                   ({segment.dictionaryMatchWord})
                                 </span>
@@ -223,7 +226,10 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                       {pinyinDetail && pinyinDetail.fromSimplified && segment.simplified && (
                                         <span className="tag text-gray-500 ml-1 text-sm">({segment.simplified})</span>
                                       )}
-                                      {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                                      {showAllPinyins && segment.dictionaryMatchWord &&
+                                        (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord &&
+                                        segment.dictionaryMatchWord !== segment.traditional &&
+                                        segment.dictionaryMatchWord !== segment.simplified && (
                                         <span className="tag text-gray-500 ml-1 text-sm">
                                           ({segment.dictionaryMatchWord})
                                         </span>
