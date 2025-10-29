@@ -192,10 +192,10 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               title={selectedPinyinDetail.definition}
                             >
                               {displaySelectedPinyinValue || ''}
-                              {selectedPinyinDetail && selectedPinyinDetail.fromTraditional && segment.traditional && (
+                              {showAllPinyins && selectedPinyinDetail && selectedPinyinDetail.fromTraditional && segment.traditional && (
                                 <span className="tag text-gray-500 ml-1 text-sm">({segment.traditional})</span>
                               )}
-                              {selectedPinyinDetail && selectedPinyinDetail.fromSimplified && segment.simplified && (
+                              {showAllPinyins && selectedPinyinDetail && selectedPinyinDetail.fromSimplified && segment.simplified && (
                                 <span className="tag text-gray-500 ml-1 text-sm">({segment.simplified})</span>
                               )}
                               {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
