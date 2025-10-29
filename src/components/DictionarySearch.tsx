@@ -291,6 +291,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         数据来源于此项目: <a href="https://github.com/Yaryou/HinghuaFactory" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">HinghuaFactory</a>
       </div>
       <div className="mt-2 text-sm text-gray-600">
+        数据来源: 《莆仙方言文读字汇》
+      </div>
+      <div className="mt-2 text-sm text-gray-600">
         友情链接: <a href="https://hinghwa.cn/Home" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">興化語記：莆仙方言在线工具</a>
       </div>
     </div>
