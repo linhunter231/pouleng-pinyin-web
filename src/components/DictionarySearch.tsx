@@ -14,6 +14,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [currentDictionary, setCurrentDictionary] = useState<DictionaryEntry[]>([]);
   const [showAllPinyins, setShowAllPinyins] = useState(true); // New state for toggling pinyin display
   const [readingPreference, setReadingPreference] = useState<'文' | '白' | undefined>(undefined); // New state for reading preference
+  const [showDebug, setShowDebug] = useState(false); // Debug panel toggle
 
   useEffect(() => {
     setCurrentDictionary(initialDictionary);
@@ -25,6 +26,10 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
     const urlReadingPreference = params.get('readingPreference');
     if (urlReadingPreference === '文' || urlReadingPreference === '白') {
       setReadingPreference(urlReadingPreference);
+    }
+    const debugParam = params.get('debug');
+    if (debugParam === '1' || debugParam === 'true') {
+      setShowDebug(true);
     }
   }, []);
 
@@ -238,7 +243,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                   );
                               })}
                           </div>
-                          {showAllPinyins && (
+                          {showDebug && showAllPinyins && (
                             <div className="mt-1 text-xs text-gray-500 w-full text-center">
                               调试: {segment.type === 'char' ? `char=${segment.char}` : `word=${segment.word}`} | traditional={segment.traditional || ''} | isTraditionalMatch={segment.isTraditionalMatch ? 'true' : 'false'} | simplified={segment.simplified || ''} | isSimplifiedMatch={segment.isSimplifiedMatch ? 'true' : 'false'} | dictionaryMatchWord={segment.dictionaryMatchWord || ''}
                             </div>
