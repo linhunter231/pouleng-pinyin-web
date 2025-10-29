@@ -36,8 +36,10 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       return;
     }
 
-    // Heuristic to determine if it's a sentence or a single word/character search
-    const isSentenceSearch = query.trim().includes(' ') || query.trim().length > 1 && !/^\p{Script=Han}$/u.test(query.trim());
+    // Heuristic: treat a single Han character as segmentation to show per-char details
+    const trimmed = query.trim();
+    const isSingleHanChar = trimmed.length === 1 && /^\p{Script=Han}$/u.test(trimmed);
+    const isSentenceSearch = isSingleHanChar || trimmed.includes(' ') || (trimmed.length > 1 && !/^\p{Script=Han}$/u.test(trimmed));
 
     if (isSentenceSearch) {
       setWordSearchResults([]); // Clear word search results
@@ -175,9 +177,13 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                       return (
                         <div key={segmentIndex} className="flex flex-col items-center mx-1 min-w-[30px]">
                           {segment.type === 'char' ? (
-                            <span className="font-bold text-lg text-center w-full">{segment.char}</span>
+                            <span className="font-bold text-lg text-center w-full">
+                              {segment.char}
+                            </span>
                           ) : (
-                            <span className="font-bold text-lg text-center w-full">{segment.word}</span>
+                            <span className="font-bold text-lg text-center w-full">
+                              {segment.word}
+                            </span>
                           )}
                           <div className="flex flex-col items-center text-blue-700 text-lg text-center w-full min-h-[1.5em]">
                             <span
@@ -186,6 +192,12 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               title={selectedPinyinDetail.definition}
                             >
                               {displaySelectedPinyinValue || ''}
+                              {selectedPinyinDetail && selectedPinyinDetail.fromTraditional && segment.traditional && (
+                                <span className="tag text-gray-500 ml-1 text-sm">({segment.traditional})</span>
+                              )}
+                              {selectedPinyinDetail && selectedPinyinDetail.fromSimplified && segment.simplified && (
+                                <span className="tag text-gray-500 ml-1 text-sm">({segment.simplified})</span>
+                              )}
                               {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
                                 <span className="tag text-gray-500 ml-1 text-sm">
                                   ({segment.dictionaryMatchWord})
@@ -197,23 +209,34 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               if (showAllPinyins && (pinyinDetail.type === '文' || pinyinDetail.type === '白')) {
                                 displayOtherPinyinValue += `(${pinyinDetail.type})`;
                               }
-                              return (
-                                <span
-                                  key={i}
-                                  className="cursor-pointer text-gray-500"
-                                  onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(pinyinDetail))}
-                                  title={pinyinDetail.definition}
-                                >
-                                  {displayOtherPinyinValue || ''}
-                                  {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
-                                    <span className="tag text-gray-500 ml-1 text-sm">
-                                      ({segment.dictionaryMatchWord})
+                                  return (
+                                    <span
+                                      key={i}
+                                      className="cursor-pointer text-gray-500"
+                                      onClick={() => handlePinyinClick(lineIndex, segmentIndex, segment.pinyin.indexOf(pinyinDetail))}
+                                      title={pinyinDetail.definition}
+                                    >
+                                      {displayOtherPinyinValue || ''}
+                                      {pinyinDetail && pinyinDetail.fromTraditional && segment.traditional && (
+                                        <span className="tag text-gray-500 ml-1 text-sm">({segment.traditional})</span>
+                                      )}
+                                      {pinyinDetail && pinyinDetail.fromSimplified && segment.simplified && (
+                                        <span className="tag text-gray-500 ml-1 text-sm">({segment.simplified})</span>
+                                      )}
+                                      {showAllPinyins && segment.dictionaryMatchWord && (segment.type === 'char' ? segment.char : segment.word) !== segment.dictionaryMatchWord && (
+                                        <span className="tag text-gray-500 ml-1 text-sm">
+                                          ({segment.dictionaryMatchWord})
+                                        </span>
+                                      )}
                                     </span>
-                                  )}
-                                </span>
-                              );
-                            })}
+                                  );
+                              })}
                           </div>
+                          {showAllPinyins && (
+                            <div className="mt-1 text-xs text-gray-500 w-full text-center">
+                              调试: {segment.type === 'char' ? `char=${segment.char}` : `word=${segment.word}`} | traditional={segment.traditional || ''} | isTraditionalMatch={segment.isTraditionalMatch ? 'true' : 'false'} | simplified={segment.simplified || ''} | isSimplifiedMatch={segment.isSimplifiedMatch ? 'true' : 'false'} | dictionaryMatchWord={segment.dictionaryMatchWord || ''}
+                            </div>
+                          )}
                           {segment.type === 'word' && segment.word && segment.word.length > 1 && showAllPinyins && segment.charPinyinDetails && (
                             <div className="flex flex-col items-center mt-2 text-sm text-gray-600"> {/* Outer container for char-pinyin pairs */}
                               <div className="flex justify-center w-full"> {/* Row for pinyins */}
@@ -224,6 +247,12 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                       return (
                                         <div key={`${charIndex}-${pinyinIndex}`} className="text-xs text-gray-500 min-h-[1.2em]" title={pinyinItem.definition}>
                                           {pinyinItem.value}{displayMarker && `(${pinyinItem.type})`}
+                                          {pinyinItem.fromTraditional && charDetail.charTraditional && (
+                                            <span className="tag text-gray-500 ml-1">({charDetail.charTraditional})</span>
+                                          )}
+                                          {pinyinItem.fromSimplified && charDetail.charSimplified && (
+                                            <span className="tag text-gray-500 ml-1">({charDetail.charSimplified})</span>
+                                          )}
                                         </div>
                                       );
                                     })}
