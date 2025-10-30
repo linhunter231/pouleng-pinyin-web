@@ -96,7 +96,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
     searchResults.forEach(lineSegments => {
       const segmentData: { hanzi: string; pinyin: string }[] = [];
       lineSegments.forEach(segment => {
-        const hanzi = segment.type === 'char' ? segment.char : segment.word;
+        const hanzi = (segment.type === 'char' ? segment.char : segment.word) || '';
         const selectedPinyinDetail = segment.pinyin[segment.selectedPinyinIndex || 0];
         const pinyin = selectedPinyinDetail ? selectedPinyinDetail.value : '';
         segmentData.push({ hanzi, pinyin });
