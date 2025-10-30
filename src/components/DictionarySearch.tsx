@@ -13,7 +13,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [wordSearchResults, setWordSearchResults] = useState<DictionaryEntry[]>([]); // For direct word/pinyin search
   const [currentDictionary, setCurrentDictionary] = useState<DictionaryEntry[]>([]);
   const [showAllPinyins, setShowAllPinyins] = useState(true); // New state for toggling pinyin display
-  const [readingPreference, setReadingPreference] = useState<'文' | '白' | undefined>(undefined); // New state for reading preference
+  const [readingPreference, setReadingPreference] = useState<'文' | '白' | undefined>('文'); // New state for reading preference
   const [showDebug, setShowDebug] = useState(false); // Debug panel toggle
   const [copyFeedback, setCopyFeedback] = useState(''); // New state for copy feedback
 
