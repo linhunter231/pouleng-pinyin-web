@@ -221,7 +221,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
           </div>
         ) : searchResults.length > 0 ? (
           <>
-            <p className="text-sm text-gray-500 mb-2">提示：点击拼音可选择不同的读音。</p>
+            <p className="text-sm text-gray-500 mb-2">提示：点击拼音可选择不同的读音。鼠标置于拼音上有可能会出现更多注释。</p>
             {searchResults.map((lineSegments, lineIndex) => (
               <div key={lineIndex} className="mb-2">
                 {lineSegments.length > 0 ? (
@@ -353,6 +353,48 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       </div>
       <div className="mt-2 text-sm text-gray-600">
         友情链接: <a href="https://hinghwa.cn/Home" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">興化語記：莆仙方言在线工具</a>
+      </div>
+      <div className="mt-2 text-sm text-yellow-600">
+        温馨提示: 本网站数据从网络获取，并未完全校对，仅供参考，如有建议欢迎联系我们。
+      </div>
+      <div className="mt-2 text-sm text-gray-600">
+        联系方式: support@puxianhua.com
+      </div>
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">常见问题</h2>
+        <div className="mb-4">
+          <h3 className="text-xl font-semibold mb-2">1. 什么是莆仙话？</h3>
+          <p className="text-gray-700">
+            莆仙话，又称兴化话，是汉藏语系汉语族闽语支闽中语的代表方言，主要流行于福建省莆田市和仙游县，以及福州市的福清市、永泰县部分地区。它是莆仙地区人民的母语，拥有悠久的历史和丰富的文化内涵。
+          </p>
+        </div>
+        <div className="mb-4">
+          <h3 className="text-xl font-semibold mb-2">2. 莆仙话的形成过程？</h3>
+          <p className="text-gray-700">
+            莆仙话的形成是一个漫长而复杂的过程，受到多种历史、地理和文化因素的影响。它主要是在古代闽语的基础上，融合了不同历史时期中原汉族移民带来的汉语方言成分，并与当地的古闽越语有所接触和影响。唐宋时期，大量中原汉人南迁入闽，对莆仙地区的语言产生了深远影响，形成了文读系统。而白读系统则更多地保留了古闽语的底层特征，并在长期发展中不断演变。此外，地理上的相对封闭性也使得莆仙话保留了许多独特的语音、词汇和语法特征。
+          </p>
+        </div>
+        <div className="mb-4">
+          <h3 className="text-xl font-semibold mb-2">3. 什么是文读、白读？</h3>
+          <p className="text-gray-700">
+            文读和白读是莆仙话（以及许多其他闽语方言）中特有的语音现象。
+            文读：通常用于书面语、文言文、诗词歌赋以及一些正式场合的词汇。它的发音更接近中古汉语，相对保守。
+            白读：通常用于口语、日常交流以及一些通俗词汇。它的发音演变faster，更具地方特色。
+            同一个汉字在莆仙话中可能同时存在文读和白读两种发音，它们在词汇搭配和语境上有所区别。
+          </p>
+        </div>
+        <div className="mb-4">
+          <h3 className="text-xl font-semibold mb-2">4. 本网站的目的是什么？</h3>
+          <p className="text-gray-700">
+            本网站旨在为莆仙话的学习者、研究者以及对莆仙文化感兴趣的人提供一个便捷的在线拼音查询工具。我们希望通过提供准确的莆仙话拼音和相关解释，帮助用户更好地理解和学习莆仙话，促进莆仙方言的传承与发展。
+          </p>
+        </div>
+        <div className="mb-4">
+          <h3 className="text-xl font-semibold mb-2">5. 如何使用本站？</h3>
+          <p className="text-gray-700">
+            您可以在顶部的搜索框中输入汉字、词语或句子进行查询。系统会自动识别并显示对应的莆仙话拼音。对于多音字或多音词，您可以点击显示的拼音可选择不同的读音，鼠标置于拼音上有可能会出现更多注释。此外，您还可以选择“文读”或“白读”偏好，以筛选显示特定读音的拼音结果。如果您想复制查询结果，可以使用“复制结果”按钮。
+          </p>
+        </div>
       </div>
     </div>
   );
