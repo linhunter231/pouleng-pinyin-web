@@ -140,7 +140,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="输入汉字或拼音查询..."
+          placeholder="输入汉字查询..."
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={4} // 设置为多行文本框，并指定行数
         />
