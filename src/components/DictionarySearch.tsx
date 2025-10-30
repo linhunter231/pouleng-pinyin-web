@@ -15,6 +15,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [showAllPinyins, setShowAllPinyins] = useState(true); // New state for toggling pinyin display
   const [readingPreference, setReadingPreference] = useState<'文' | '白' | undefined>(undefined); // New state for reading preference
   const [showDebug, setShowDebug] = useState(false); // Debug panel toggle
+  const [copyFeedback, setCopyFeedback] = useState(''); // New state for copy feedback
 
   useEffect(() => {
     setCurrentDictionary(initialDictionary);
@@ -83,6 +84,55 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
     });
   };
 
+  const handleCopyResults = () => {
+    if (searchResults.length === 0) {
+      setCopyFeedback('没有可复制的结果');
+      setTimeout(() => setCopyFeedback(''), 2000);
+      return;
+    }
+
+    let formattedLines: string[] = [];
+
+    searchResults.forEach(lineSegments => {
+      const segmentData: { hanzi: string; pinyin: string }[] = [];
+      lineSegments.forEach(segment => {
+        const hanzi = segment.type === 'char' ? segment.char : segment.word;
+        const selectedPinyinDetail = segment.pinyin[segment.selectedPinyinIndex || 0];
+        const pinyin = selectedPinyinDetail ? selectedPinyinDetail.value : '';
+        segmentData.push({ hanzi, pinyin });
+      });
+
+      let hanziLine = '';
+      let pinyinLine = '';
+
+      segmentData.forEach(data => {
+        const hanziLen = data.hanzi.length;
+        const pinyinLen = data.pinyin.length;
+
+        const maxLen = Math.max(hanziLen, pinyinLen);
+
+        hanziLine += data.hanzi.padEnd(maxLen, ' ') + ' '; // Add an extra space for separation
+        pinyinLine += data.pinyin.padEnd(maxLen, ' ') + ' '; // Add an extra space for separation
+      });
+
+      formattedLines.push(hanziLine.trim());
+      formattedLines.push(pinyinLine.trim());
+    });
+
+    const copiedText = formattedLines.join('\n');
+
+    navigator.clipboard.writeText(copiedText.trim())
+      .then(() => {
+        setCopyFeedback('已复制！');
+        setTimeout(() => setCopyFeedback(''), 2000);
+      })
+      .catch(err => {
+        console.error('复制失败:', err);
+        setCopyFeedback('复制失败');
+        setTimeout(() => setCopyFeedback(''), 2000);
+      });
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">莆仙话拼音查询</h1>
@@ -108,6 +158,14 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
           >
             {showAllPinyins ? '隐藏多余拼音' : '显示所有拼音'}
           </button>
+          <button
+            type="button"
+            onClick={handleCopyResults}
+            className="ml-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            复制结果
+          </button>
+          {copyFeedback && <span className="ml-2 text-green-600">{copyFeedback}</span>}
           <div className="ml-4 flex items-center">
             <span className="mr-2">拼音偏好:</span>
             <label className="inline-flex items-center">
