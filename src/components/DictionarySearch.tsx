@@ -365,7 +365,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         <div className="mb-4">
           <h3 className="text-xl font-semibold mb-2">1. 什么是莆仙话？</h3>
           <p className="text-gray-700">
-            莆仙话，又称兴化话，是汉藏语系汉语族闽语支闽中语的代表方言，主要流行于福建省莆田市和仙游县，以及福州市的福清市、永泰县部分地区。它是莆仙地区人民的母语，拥有悠久的历史和丰富的文化内涵。
+            莆仙话，又称兴化话，是汉藏语系汉语族闽语支的代表方言，主要流行于福建省莆田市和仙游县，以及福州市的福清市、永泰县部分地区。它是莆仙地区人民的母语，拥有悠久的历史和丰富的文化内涵。
           </p>
         </div>
         <div className="mb-4">
