@@ -270,6 +270,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                 </span>
                               )}
                             </span>
+                            {showAllPinyins && selectedPinyinDetail.definition && (
+                              <div className="text-emerald-600" style={{ fontSize: '0.6rem' }}>{selectedPinyinDetail.definition}</div>
+                            )}
                             {showAllPinyins && otherPinyinDetails.map((pinyinDetail, i) => {
                               let displayOtherPinyinValue = pinyinDetail.value;
                               if (showAllPinyins && (pinyinDetail.type === '文' || pinyinDetail.type === '白')) {
@@ -297,6 +300,9 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                           ({segment.dictionaryMatchWord})
                                         </span>
                                       )}
+                                      {pinyinDetail.definition && (
+                                        <div className="text-gray-500" style={{ fontSize: '0.6rem' }}>{pinyinDetail.definition}</div>
+                                      )}
                                     </span>
                                   );
                               })}
@@ -322,6 +328,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                                           {pinyinItem.fromSimplified && charDetail.charSimplified && (
                                             <span className="tag text-gray-500 ml-1">({charDetail.charSimplified})</span>
                                           )}
+                                          {pinyinItem.definition && <div className="text-gray-400" style={{ fontSize: '0.6rem' }}>{pinyinItem.definition}</div>}
                                         </div>
                                       );
                                     })}
