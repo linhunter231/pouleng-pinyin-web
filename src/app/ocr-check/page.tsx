@@ -59,21 +59,26 @@ export default function OcrCheckPage() {
   }, [jsonName]);
 
   useEffect(() => {
-    if (ocrData) {
-      let maxX = 0;
-      let maxY = 0;
+    const fetchImageDimensions = async () => {
+      if (imageName) {
+        try {
+          const response = await fetch(`/api/image-info?imageName=${imageName}`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          setOriginalOcrDimensions({ width: data.width, height: data.height });
+          console.log("Fetched original image dimensions:", data);
+        } catch (error) {
+          console.error("Error fetching image dimensions:", error);
+        }
+      }
+    };
 
-      ocrData.forEach(item => {
-        const { X, Y, Width, Height } = item.ItemPolygon;
-        if (X + Width > maxX) maxX = X + Width;
-        if (Y + Height > maxY) maxY = Y + Height;
-      });
-      maxX = maxX + 500;
-      maxY = maxY + 400;
-      setOriginalOcrDimensions({ width: maxX, height: maxY });
-      console.log("originalOcrDimensions:", { width: maxX, height: maxY });
-    }
-  }, [ocrData]);
+    fetchImageDimensions();
+  }, [imageName]);
+
+
 
   const handleImageLoad = () => {
     if (imageRef.current && imageContainerRef.current && leftPaneRef.current) {
@@ -81,9 +86,11 @@ export default function OcrCheckPage() {
       const imageRect = imageRef.current.getBoundingClientRect();
       const leftPaneRect = leftPaneRef.current.getBoundingClientRect();
 
-      const offsetX = imageRect.left - leftPaneRect.left;
-      const offsetY = imageRect.top - leftPaneRect.top;
+      const offsetX = imageRect.left - leftPaneRef.current.offsetLeft;
+      const offsetY = imageRect.top - leftPaneRef.current.offsetTop;
       const containerHeight = imageContainerRef.current.offsetHeight; // Get container height
+
+      // setOriginalOcrDimensions({ width: naturalWidth, height: naturalHeight }); // This is now handled by API call
 
       const dimensions = {
         naturalWidth,

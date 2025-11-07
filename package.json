@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "image-size": "^2.0.2",
     "js-yaml": "^4.1.0",
     "next": "15.5.5",
     "opencc-js": "^1.0.5",
