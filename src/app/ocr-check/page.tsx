@@ -207,8 +207,6 @@ export default function OcrCheckPage() {
 
             const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
             const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
-            console.log('ScaleX:', scaleX, 'ScaleY:', scaleY);
-            console.log('fontSize:', Math.max(8, 125 * Math.min(scaleX, scaleY)));
             const style: React.CSSProperties = {
               position: 'absolute',
               left: `${X * scaleX}px`,
@@ -216,7 +214,7 @@ export default function OcrCheckPage() {
               width: `${Width * scaleX}px`,
               height: `${Height * scaleY}px`,
               border: '1px solid rgba(0, 123, 255, 0.7)',
-              fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+              fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
               overflow: 'hidden',
               display: 'flex',
               alignItems: 'center',
@@ -229,23 +227,72 @@ export default function OcrCheckPage() {
 
             return (
               <div
-                key={index}
-                style={style}
-                title={detection.DetectedText}
-                contentEditable="true"
-                suppressContentEditableWarning={true}
-                onBlur={(e) => {
-                  const newText = e.currentTarget.textContent || '';
-                  setOcrData(prevOcrData => {
-                    if (!prevOcrData) return null;
-                    const newOcrData = [...prevOcrData];
-                    newOcrData[index] = { ...newOcrData[index], DetectedText: newText };
-                    return newOcrData;
-                  });
-                  console.log(`Edited text for item ${index}:`, newText);
+                key={`wrapper-${index}`}
+                style={{
+                  position: 'absolute',
+                  left: `${X * scaleX}px`,
+                  top: `${Y * scaleY}px`,
+                  width: `${Width * scaleX}px`,
+                  height: `${Height * scaleY}px`,
                 }}
               >
-                {detection.DetectedText}
+                <div
+                  key={index}
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                    border: '1px solid rgba(0, 123, 255, 0.7)',
+                    fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    textAlign: 'left',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    boxSizing: 'border-box',
+                  }}
+                  title={detection.DetectedText}
+                  contentEditable="true"
+                  suppressContentEditableWarning={true}
+                  onBlur={(e) => {
+                    const newText = e.currentTarget.textContent || '';
+                    setOcrData(prevOcrData => {
+                      if (!prevOcrData) return null;
+                      const newOcrData = [...prevOcrData];
+                      newOcrData[index] = { ...newOcrData[index], DetectedText: newText };
+                      return newOcrData;
+                    });
+                    console.log(`Edited text for item ${index}:`, newText);
+                  }}
+                >
+                  {detection.DetectedText}
+                </div>
+                <span style={{
+                  position: 'absolute',
+                  top: '-15px', // Adjust this value to position it correctly above the box
+                  left: '-15px', // Adjust this value to position it correctly to the left of the box
+                  fontSize: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  zIndex: 10, // Ensure it's above the text box
+                }}>
+                  {JSON.parse(detection.AdvancedInfo).Parag.ParagNo}
+                </span>
+                <span style={{
+                  position: 'absolute',
+                  top: '-15px', // Adjust this value to position it correctly above the box
+                  right: '0px', // Adjust this value to position it correctly to the right of the box
+                  fontSize: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  zIndex: 10, // Ensure it's above the text box
+                }}>
+                  {detection.Confidence}
+                </span>
               </div>
             );
           })}
