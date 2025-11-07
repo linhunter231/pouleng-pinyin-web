@@ -243,7 +243,7 @@ export default function OcrCheckPage() {
                     width: '100%',
                     height: '100%',
                     border: '1px solid rgba(0, 123, 255, 0.7)',
-                    fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+                    fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
                     overflow: 'hidden',
                     display: 'flex',
                     alignItems: 'center',
@@ -252,6 +252,12 @@ export default function OcrCheckPage() {
                     whiteSpace: 'nowrap',
                     textOverflow: 'ellipsis',
                     boxSizing: 'border-box',
+                    color: `rgba(0, 0, 0, ${
+                      detection.Confidence === 100 ? 1 :
+                      detection.Confidence === 99 ? 0.9 :
+                      detection.Confidence === 98 ? 0.7 :
+                      0.4
+                    })`,
                   }}
                   title={detection.DetectedText}
                   contentEditable="true"
