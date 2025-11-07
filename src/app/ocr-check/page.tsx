@@ -286,10 +286,11 @@ export default function OcrCheckPage() {
   ];
 
   return (
-    <div className="flex flex-grow">
-      {/* Left Pane: Image */}
-      <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
-        <div className="flex justify-between items-center mb-4">
+    <div className="flex flex-col flex-grow">
+      {/* Top Toolbar spanning both panes */}
+      <div className="p-4 border-b border-gray-300 flex justify-between items-center">
+        {/* Left controls */}
+        <div className="flex items-center space-x-2">
           <button
             onClick={handlePrevious}
             disabled={currentImageIndex === 0}
@@ -316,26 +317,9 @@ export default function OcrCheckPage() {
             下一页
           </button>
         </div>
-        <div className="relative w-full h-auto" ref={imageContainerRef}> {/* This div will contain the image */} 
-          {imageName && (
-            <Image
-              ref={imageRef}
-              src={`/images/wdzh/${imageName}`}
-              alt="OCR Image"
-              layout="responsive"
-              width={1000} // These are intrinsic width/height hints for Next.js, not necessarily rendered size
-              height={1500}
-              objectFit="contain"
-              onLoad={handleImageLoad}
-            />
-          )}
-        </div>
-      </div>
 
-      {/* Right Pane: OCR Detected Text on Image */}
-      <div className="p-4 overflow-auto flex flex-col flex-grow basis-0">
-
-        <div className="flex space-x-2 mb-4">
+        {/* Right controls */}
+        <div className="flex items-center space-x-2">
           <button
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={async () => {
@@ -386,122 +370,147 @@ export default function OcrCheckPage() {
             ))}
           </div>
         </div>
-        <div
-          className="relative border border-gray-300 overflow-y-auto flex-grow"
-          style={imageRenderedDimensions ? {
-              // width: `${imageRenderedDimensions.width}px`,
-              // height: `${imageRenderedDimensions.containerHeight}px`,
-              // marginLeft: `${imageRenderedDimensions.offsetX}px`,
-              // marginTop: `${imageRenderedDimensions.offsetY}px`,
-            } : {}}
-          >
-          {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
-            const { X, Y, Width, Height } = detection.ItemPolygon;
-            const { naturalWidth, naturalHeight, width: renderedWidth, height: renderedHeight } = imageRenderedDimensions;
+      </div>
 
-            const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
-            const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
-            const style: React.CSSProperties = {
-              position: 'absolute',
-              left: `${X * scaleX}px`,
-              top: `${Y * scaleY}px`,
-              width: `${Width * scaleX}px`,
-              height: `${Height * scaleY}px`,
-              border: '1px solid rgba(0, 123, 255, 0.7)',
-              fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              textAlign: 'left',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              boxSizing: 'border-box',
-            };
+      {/* Two panes below toolbar */}
+      <div className="flex flex-grow">
+        {/* Left Pane: Image */}
+        <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
+          <div className="relative w-full h-auto" ref={imageContainerRef}> {/* This div will contain the image */}
+            {imageName && (
+              <Image
+                ref={imageRef}
+                src={`/images/wdzh/${imageName}`}
+                alt="OCR Image"
+                layout="responsive"
+                width={1000} // These are intrinsic width/height hints for Next.js, not necessarily rendered size
+                height={1500}
+                objectFit="contain"
+                onLoad={handleImageLoad}
+              />
+            )}
+          </div>
+        </div>
 
-            return (
-              <div
-                key={`wrapper-${index}`}
-                style={{
-                  position: 'absolute',
-                  left: `${X * scaleX}px`,
-                  top: `${Y * scaleY}px`,
-                  width: `${Width * scaleX}px`,
-                  height: `${Height * scaleY}px`,
-                }}
-              >
+        {/* Right Pane: OCR Detected Text on Image */}
+        <div className="p-4 overflow-auto flex flex-col flex-grow basis-0">
+          <div
+            className="relative border border-gray-300 overflow-y-auto flex-grow"
+            style={imageRenderedDimensions ? {
+                // width: `${imageRenderedDimensions.width}px`,
+                // height: `${imageRenderedDimensions.containerHeight}px`,
+                // marginLeft: `${imageRenderedDimensions.offsetX}px`,
+                // marginTop: `${imageRenderedDimensions.offsetY}px`,
+              } : {}}
+            >
+            {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
+              const { X, Y, Width, Height } = detection.ItemPolygon;
+              const { naturalWidth, naturalHeight, width: renderedWidth, height: renderedHeight } = imageRenderedDimensions;
+
+              const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
+              const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
+              const style: React.CSSProperties = {
+                position: 'absolute',
+                left: `${X * scaleX}px`,
+                top: `${Y * scaleY}px`,
+                width: `${Width * scaleX}px`,
+                height: `${Height * scaleY}px`,
+                border: '1px solid rgba(0, 123, 255, 0.7)',
+                fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                textAlign: 'left',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                boxSizing: 'border-box',
+              };
+
+              return (
                 <div
-                  key={index}
+                  key={`wrapper-${index}`}
                   style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    border: '1px solid rgba(0, 123, 255, 0.7)',
-                    fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    textAlign: 'left',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    boxSizing: 'border-box',
-                    color: `rgba(0, 0, 0, ${
-                      detection.Confidence === 100 ? 1 :
-                      detection.Confidence === 99 ? 0.9 :
-                      detection.Confidence === 98 ? 0.7 :
-                      0.4
-                    })`,
-                  }}
-                  title={detection.DetectedText}
-                  contentEditable="true"
-                  suppressContentEditableWarning={true}
-                  onFocus={(e) => {
-                    currentEditableInfo.current = { element: e.currentTarget, index };
-                  }}
-                  onBlur={(e) => {
-                    const newText = e.currentTarget.textContent || '';
-                    setOcrData(prevOcrData => {
-                      if (!prevOcrData) return null;
-                      const newOcrData = [...prevOcrData];
-                      newOcrData[index] = { ...newOcrData[index], DetectedText: newText };
-                      return newOcrData;
-                    });
-                    console.log(`Edited text for item ${index}:`, newText);
-                    currentEditableInfo.current = null;
+                    position: 'absolute',
+                    left: `${X * scaleX}px`,
+                    top: `${Y * scaleY}px`,
+                    width: `${Width * scaleX}px`,
+                    height: `${Height * scaleY}px`,
                   }}
                 >
-                  {detection.DetectedText}
+                  <div
+                    key={index}
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '100%',
+                      border: '1px solid rgba(0, 123, 255, 0.7)',
+                      fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                      boxSizing: 'border-box',
+                      color: `rgba(0, 0, 0, ${
+                        detection.Confidence === 100 ? 1 :
+                        detection.Confidence === 99 ? 0.9 :
+                        detection.Confidence === 98 ? 0.7 :
+                        0.4
+                      })`,
+                    }}
+                    title={detection.DetectedText}
+                    contentEditable="true"
+                    suppressContentEditableWarning={true}
+                    onFocus={(e) => {
+                      currentEditableInfo.current = { element: e.currentTarget, index };
+                    }}
+                    onBlur={(e) => {
+                      const newText = e.currentTarget.textContent || '';
+                      setOcrData(prevOcrData => {
+                        if (!prevOcrData) return null;
+                        const newOcrData = [...prevOcrData];
+                        newOcrData[index] = { ...newOcrData[index], DetectedText: newText };
+                        return newOcrData;
+                      });
+                      console.log(`Edited text for item ${index}:`, newText);
+                      currentEditableInfo.current = null;
+                    }}
+                  >
+                    {detection.DetectedText}
+                  </div>
+                  <span style={{
+                    position: 'absolute',
+                    top: '-15px', // Adjust this value to position it correctly above the box
+                    left: '-15px', // Adjust this value to position it correctly to the left of the box
+                    fontSize: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    zIndex: 10, // Ensure it's above the text box
+                  }}>
+                    {JSON.parse(detection.AdvancedInfo).Parag.ParagNo}
+                  </span>
+                  <span style={{
+                    position: 'absolute',
+                    top: '-15px', // Adjust this value to position it correctly above the box
+                    right: '0px', // Adjust this value to position it correctly to the right of the box
+                    fontSize: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    zIndex: 10, // Ensure it's above the text box
+                  }}>
+                    {detection.Confidence}
+                  </span>
                 </div>
-                <span style={{
-                  position: 'absolute',
-                  top: '-15px', // Adjust this value to position it correctly above the box
-                  left: '-15px', // Adjust this value to position it correctly to the left of the box
-                  fontSize: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  zIndex: 10, // Ensure it's above the text box
-                }}>
-                  {JSON.parse(detection.AdvancedInfo).Parag.ParagNo}
-                </span>
-                <span style={{
-                  position: 'absolute',
-                  top: '-15px', // Adjust this value to position it correctly above the box
-                  right: '0px', // Adjust this value to position it correctly to the right of the box
-                  fontSize: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  zIndex: 10, // Ensure it's above the text box
-                }}>
-                  {detection.Confidence}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
   );
-};
+}
