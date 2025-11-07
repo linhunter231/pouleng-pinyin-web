@@ -19,6 +19,7 @@ type OcrResult = OcrDetectionItem[];
 
 export default function OcrCheckPage() {
   const [ocrData, setOcrData] = useState<OcrResult | null>(null);
+  const [initialOcrData, setInitialOcrData] = useState<OcrResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -26,15 +27,43 @@ export default function OcrCheckPage() {
   const leftPaneRef = useRef<HTMLDivElement>(null);
   const [originalOcrDimensions, setOriginalOcrDimensions] = useState<{ width: number; height: number } | null>(null);
   const [imageRenderedDimensions, setImageRenderedDimensions] = useState<{ width: number; height: number; naturalWidth: number; naturalHeight: number; offsetX: number; offsetY: number; containerHeight: number } | null>(null);
-  const [initialOcrData, setInitialOcrData] = useState<OcrResult | null>(null); // New state for initial OCR data
+  const [fileNames, setFileNames] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
 
-  const imageName = "dic-017.png";
-  const jsonName = "dic-017.json";
+  const currentFileName = fileNames[currentImageIndex];
+  const imageName = currentFileName ? `${currentFileName}.png` : '';
+  const jsonName = currentFileName ? `${currentFileName}.json` : '';
+  console.log("Current imageName:", imageName, "and jsonName:", jsonName);
+
+  useEffect(() => {
+    const fetchFileNames = async () => {
+      try {
+        const response = await fetch('/api/files');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setFileNames(data.files);
+        console.log("Fetched file names:", data.files);
+      } catch (e: any) {
+        console.error('Error fetching file names:', e);
+        setError(e.message);
+      }
+    };
+    fetchFileNames();
+  }, []);
 
   useEffect(() => {
     async function fetchOcrData() {
-      try {
-        const response = await fetch(`/ocr_results/wdzh/${jsonName}`);
+        if (!jsonName) return; // Use the global jsonName and check if it's valid
+
+        try {
+        setLoading(true);
+        // const currentFileName = fileNames[currentImageIndex]; // Removed
+        // const imageName = `${currentFileName}.png`; // Removed
+        // const jsonName = `${currentFileName}.json`; // Removed, using global jsonName
+
+        const response = await fetch(`/ocr_results/wdzh/${jsonName}`); // Use global jsonName
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -56,11 +85,12 @@ export default function OcrCheckPage() {
     }
 
     fetchOcrData();
-  }, [jsonName]);
+  }, [jsonName, currentImageIndex]); // Updated dependency array
 
   useEffect(() => {
     const fetchImageDimensions = async () => {
-      if (imageName) {
+      console.log("Fetching image dimensions for: ", imageName);
+            if (imageName) {
         try {
           const response = await fetch(`/api/image-info?imageName=${imageName}`);
           if (!response.ok) {
@@ -76,7 +106,7 @@ export default function OcrCheckPage() {
     };
 
     fetchImageDimensions();
-  }, [imageName]);
+  }, [imageName, currentImageIndex, fileNames]);
 
   useEffect(() => {
     if (ocrData) {
@@ -138,22 +168,48 @@ export default function OcrCheckPage() {
   if (loading) return <div className="flex justify-center items-center h-screen">加载中...</div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">错误: {error}</div>;
 
+  const handlePrevious = () => {
+    setCurrentImageIndex(prevIndex => Math.max(0, prevIndex - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentImageIndex(prevIndex => Math.min(fileNames.length - 1, prevIndex + 1));
+  };
+
   return (
     <div className="flex flex-grow">
       {/* Left Pane: Image */}
       <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
-        <h2 className="text-xl font-bold mb-4">图片: {imageName}</h2>
+        <div className="flex justify-between mb-4">
+          <button
+            onClick={handlePrevious}
+            disabled={currentImageIndex === 0}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <h2 className="text-xl font-bold">图片: {imageName}</h2>
+          <button
+            onClick={handleNext}
+            disabled={currentImageIndex === fileNames.length - 1}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
         <div className="relative w-full h-auto" ref={imageContainerRef}> {/* This div will contain the image */} 
-          <Image
-            ref={imageRef}
-            src={`/images/wdzh/${imageName}`}
-            alt="OCR Image"
-            layout="responsive"
-            width={1000} // These are intrinsic width/height hints for Next.js, not necessarily rendered size
-            height={1500}
-            objectFit="contain"
-            onLoad={handleImageLoad}
-          />
+          {imageName && (
+            <Image
+              ref={imageRef}
+              src={`/images/wdzh/${imageName}`}
+              alt="OCR Image"
+              layout="responsive"
+              width={1000} // These are intrinsic width/height hints for Next.js, not necessarily rendered size
+              height={1500}
+              objectFit="contain"
+              onLoad={handleImageLoad}
+            />
+          )}
         </div>
       </div>
 
