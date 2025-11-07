@@ -78,7 +78,21 @@ export default function OcrCheckPage() {
     fetchImageDimensions();
   }, [imageName]);
 
+  useEffect(() => {
+    if (ocrData) {
+      let maxX = 0;
+      let maxY = 0;
 
+      ocrData.forEach(item => {
+        const { X, Y, Width, Height } = item.ItemPolygon;
+        if (X + Width > maxX) maxX = X + Width;
+        if (Y + Height > maxY) maxY = Y + Height;
+      });
+      // Removed fixed offsets, now using actual image dimensions
+      // setOriginalOcrDimensions({ width: maxX, height: maxY }); // This line is removed
+      console.log("originalOcrDimensions:", { width: maxX, height: maxY });
+    }
+  }, [ocrData]);
 
   const handleImageLoad = () => {
     if (imageRef.current && imageContainerRef.current && leftPaneRef.current) {
@@ -89,6 +103,11 @@ export default function OcrCheckPage() {
       const offsetX = imageRect.left - leftPaneRef.current.offsetLeft;
       const offsetY = imageRect.top - leftPaneRef.current.offsetTop;
       const containerHeight = imageContainerRef.current.offsetHeight; // Get container height
+
+      console.log("Image Ref Width:", width);
+      console.log("Image Ref Height:", height);
+      console.log("Image Container Offset Width:", imageContainerRef.current.offsetWidth);
+      console.log("Image Container Offset Height:", imageContainerRef.current.offsetHeight);
 
       // setOriginalOcrDimensions({ width: naturalWidth, height: naturalHeight }); // This is now handled by API call
 
@@ -105,13 +124,24 @@ export default function OcrCheckPage() {
     }
   };
 
+  useEffect(() => {
+    const handleResize = () => {
+      handleImageLoad();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [imageRenderedDimensions]); // Depend on imageRenderedDimensions to re-run when it changes
+
   if (loading) return <div className="flex justify-center items-center h-screen">加载中...</div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">错误: {error}</div>;
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-grow">
       {/* Left Pane: Image */}
-      <div className="w-1/2 p-4 border-r border-gray-300 overflow-auto" ref={leftPaneRef}>
+      <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
         <h2 className="text-xl font-bold mb-4">图片: {imageName}</h2>
         <div className="relative w-full h-auto" ref={imageContainerRef}> {/* This div will contain the image */} 
           <Image
@@ -128,7 +158,7 @@ export default function OcrCheckPage() {
       </div>
 
       {/* Right Pane: OCR Detected Text on Image */}
-      <div className="w-1/2 p-4 overflow-auto">
+      <div className="p-4 overflow-auto flex flex-col flex-grow basis-0">
 
         <div className="flex space-x-2 mb-4">
           <button
@@ -163,13 +193,12 @@ export default function OcrCheckPage() {
           </button>
         </div>
         <div
-          className="relative border border-gray-300 overflow-y-auto"
-          style={{ height: imageRenderedDimensions?.containerHeight || 'auto' }}
+          className="relative border border-gray-300 overflow-y-auto flex-grow"
           style={imageRenderedDimensions ? {
-              width: `${imageRenderedDimensions.width}px`,
-              height: `${imageRenderedDimensions.containerHeight}px`,
-              marginLeft: `${imageRenderedDimensions.offsetX}px`,
-              marginTop: `${imageRenderedDimensions.offsetY}px`,
+              // width: `${imageRenderedDimensions.width}px`,
+              // height: `${imageRenderedDimensions.containerHeight}px`,
+              // marginLeft: `${imageRenderedDimensions.offsetX}px`,
+              // marginTop: `${imageRenderedDimensions.offsetY}px`,
             } : {}}
           >
           {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
@@ -178,26 +207,24 @@ export default function OcrCheckPage() {
 
             const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
             const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
-
+            console.log('ScaleX:', scaleX, 'ScaleY:', scaleY);
+            console.log('fontSize:', Math.max(8, 125 * Math.min(scaleX, scaleY)));
             const style: React.CSSProperties = {
               position: 'absolute',
-              left: `${X * scaleX + imageRenderedDimensions.offsetX}px`,
+              left: `${X * scaleX}px`,
               top: `${Y * scaleY}px`,
-              minWidth: `${Width * scaleX * 1}px`,
-              minHeight: `${Height * scaleY * 1}px`,
-              width: 'auto',
-              height: 'auto',
+              width: `${Width * scaleX}px`,
+              height: `${Height * scaleY}px`,
               border: '1px solid rgba(0, 123, 255, 0.7)',
-              backgroundColor: 'rgba(0, 123, 255, 0.2)',
-              boxSizing: 'border-box',
+              fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+              overflow: 'hidden',
               display: 'flex',
               alignItems: 'center',
-              fontSize: '14px',
-              color: 'black',
-              overflow: 'auto', // Changed from hidden
+              justifyContent: 'flex-start',
               textAlign: 'left',
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              boxSizing: 'border-box',
             };
 
             return (
