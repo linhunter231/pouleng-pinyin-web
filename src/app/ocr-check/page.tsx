@@ -180,7 +180,7 @@ export default function OcrCheckPage() {
     <div className="flex flex-grow">
       {/* Left Pane: Image */}
       <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between items-center mb-4">
           <button
             onClick={handlePrevious}
             disabled={currentImageIndex === 0}
@@ -188,7 +188,17 @@ export default function OcrCheckPage() {
           >
             上一页
           </button>
-          <h2 className="text-xl font-bold">图片: {imageName}</h2>
+          <select
+            value={currentImageIndex}
+            onChange={(e) => setCurrentImageIndex(Number(e.target.value))}
+            className="p-2 border rounded"
+          >
+            {fileNames.map((name, index) => (
+              <option key={name} value={index}>
+                {name}
+              </option>
+            ))}
+          </select>
           <button
             onClick={handleNext}
             disabled={currentImageIndex === fileNames.length - 1}
