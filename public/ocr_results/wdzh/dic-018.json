@@ -1,0 +1,2239 @@
+{
+    "TextDetections": [
+        {
+            "DetectedText": "2 莆仙方言文读字汇",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 557,
+                    "Y": 282
+                },
+                {
+                    "X": 1541,
+                    "Y": 274
+                },
+                {
+                    "X": 1542,
+                    "Y": 425
+                },
+                {
+                    "X": 558,
+                    "Y": 433
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":1}}",
+            "ItemPolygon": {
+                "X": 557,
+                "Y": 274,
+                "Width": 985,
+                "Height": 159
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "碍(我害切ngai5)妨~，障~，",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 551,
+                    "Y": 631
+                },
+                {
+                    "X": 2358,
+                    "Y": 631
+                },
+                {
+                    "X": 2358,
+                    "Y": 830
+                },
+                {
+                    "X": 551,
+                    "Y": 830
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":2}}",
+            "ItemPolygon": {
+                "X": 551,
+                "Y": 631,
+                "Width": 1807,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "随声附和:~婀。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2850,
+                    "Y": 623
+                },
+                {
+                    "X": 3839,
+                    "Y": 612
+                },
+                {
+                    "X": 3841,
+                    "Y": 783
+                },
+                {
+                    "X": 2852,
+                    "Y": 793
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":3}}",
+            "ItemPolygon": {
+                "X": 2850,
+                "Y": 612,
+                "Width": 991,
+                "Height": 181
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "有~观瞻。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 771,
+                    "Y": 869
+                },
+                {
+                    "X": 1356,
+                    "Y": 878
+                },
+                {
+                    "X": 1353,
+                    "Y": 1053
+                },
+                {
+                    "X": 768,
+                    "Y": 1044
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":4}}",
+            "ItemPolygon": {
+                "X": 768,
+                "Y": 869,
+                "Width": 588,
+                "Height": 184
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "鹌",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 817
+                },
+                {
+                    "X": 2850,
+                    "Y": 817
+                },
+                {
+                    "X": 2850,
+                    "Y": 1016
+                },
+                {
+                    "X": 2631,
+                    "Y": 1016
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":5}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 817,
+                "Width": 219,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如安an1)~鹑。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2837,
+                    "Y": 830
+                },
+                {
+                    "X": 4013,
+                    "Y": 830
+                },
+                {
+                    "X": 4013,
+                    "Y": 1003
+                },
+                {
+                    "X": 2837,
+                    "Y": 1003
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":6}}",
+            "ItemPolygon": {
+                "X": 2837,
+                "Y": 830,
+                "Width": 1176,
+                "Height": 173
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "硋(我害切ngai5)古同“碍”，",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 544,
+                    "Y": 1069
+                },
+                {
+                    "X": 2352,
+                    "Y": 1069
+                },
+                {
+                    "X": 2352,
+                    "Y": 1269
+                },
+                {
+                    "X": 544,
+                    "Y": 1269
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":7}}",
+            "ItemPolygon": {
+                "X": 544,
+                "Y": 1069,
+                "Width": 1808,
+                "Height": 200
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "鞍",
+            "Confidence": 100,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 1049
+                },
+                {
+                    "X": 2850,
+                    "Y": 1049
+                },
+                {
+                    "X": 2850,
+                    "Y": 1255
+                },
+                {
+                    "X": 2631,
+                    "Y": 1255
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":8}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 1049,
+                "Width": 219,
+                "Height": 206
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如安an1)马~。",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 2844,
+                    "Y": 1062
+                },
+                {
+                    "X": 4014,
+                    "Y": 1069
+                },
+                {
+                    "X": 4013,
+                    "Y": 1249
+                },
+                {
+                    "X": 2843,
+                    "Y": 1241
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":9}}",
+            "ItemPolygon": {
+                "X": 2843,
+                "Y": 1062,
+                "Width": 1171,
+                "Height": 187
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "意为妨碍，障碍。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 770,
+                    "Y": 1315
+                },
+                {
+                    "X": 1734,
+                    "Y": 1315
+                },
+                {
+                    "X": 1734,
+                    "Y": 1488
+                },
+                {
+                    "X": 770,
+                    "Y": 1488
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":10}}",
+            "ItemPolygon": {
+                "X": 770,
+                "Y": 1315,
+                "Width": 964,
+                "Height": 173
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "盦(音如安an1)古代盛食物的",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 1295
+                },
+                {
+                    "X": 4518,
+                    "Y": 1295
+                },
+                {
+                    "X": 4518,
+                    "Y": 1488
+                },
+                {
+                    "X": 2631,
+                    "Y": 1488
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":11}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 1295,
+                "Width": 1887,
+                "Height": 193
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "嗌①(安代切ai5)咽喉阻塞。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 544,
+                    "Y": 1508
+                },
+                {
+                    "X": 2299,
+                    "Y": 1508
+                },
+                {
+                    "X": 2299,
+                    "Y": 1707
+                },
+                {
+                    "X": 544,
+                    "Y": 1707
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":12}}",
+            "ItemPolygon": {
+                "X": 544,
+                "Y": 1508,
+                "Width": 1755,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "器具。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2863,
+                    "Y": 1534
+                },
+                {
+                    "X": 3189,
+                    "Y": 1534
+                },
+                {
+                    "X": 3189,
+                    "Y": 1701
+                },
+                {
+                    "X": 2863,
+                    "Y": 1701
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":13}}",
+            "ItemPolygon": {
+                "X": 2863,
+                "Y": 1534,
+                "Width": 326,
+                "Height": 167
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "②",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 770,
+                    "Y": 1774
+                },
+                {
+                    "X": 930,
+                    "Y": 1774
+                },
+                {
+                    "X": 930,
+                    "Y": 1920
+                },
+                {
+                    "X": 770,
+                    "Y": 1920
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":14}}",
+            "ItemPolygon": {
+                "X": 770,
+                "Y": 1774,
+                "Width": 160,
+                "Height": 146
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如益yi6)咽喉。~不",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 922,
+                    "Y": 1766
+                },
+                {
+                    "X": 2444,
+                    "Y": 1752
+                },
+                {
+                    "X": 2445,
+                    "Y": 1923
+                },
+                {
+                    "X": 923,
+                    "Y": 1937
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":15}}",
+            "ItemPolygon": {
+                "X": 922,
+                "Y": 1752,
+                "Width": 1523,
+                "Height": 185
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "腤",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 1727
+                },
+                {
+                    "X": 2857,
+                    "Y": 1727
+                },
+                {
+                    "X": 2857,
+                    "Y": 1927
+                },
+                {
+                    "X": 2631,
+                    "Y": 1927
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":16}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 1727,
+                "Width": 226,
+                "Height": 200
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如安an1)烹煮。",
+            "Confidence": 97,
+            "Polygon": [
+                {
+                    "X": 2857,
+                    "Y": 1746
+                },
+                {
+                    "X": 4014,
+                    "Y": 1753
+                },
+                {
+                    "X": 4013,
+                    "Y": 1920
+                },
+                {
+                    "X": 2856,
+                    "Y": 1913
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":17}}",
+            "ItemPolygon": {
+                "X": 2856,
+                "Y": 1746,
+                "Width": 1158,
+                "Height": 174
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "容粒。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 770,
+                    "Y": 1993
+                },
+                {
+                    "X": 1089,
+                    "Y": 1993
+                },
+                {
+                    "X": 1089,
+                    "Y": 2152
+                },
+                {
+                    "X": 770,
+                    "Y": 2152
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":18}}",
+            "ItemPolygon": {
+                "X": 770,
+                "Y": 1993,
+                "Width": 319,
+                "Height": 159
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "鮟(音如安an1)俗称老头鱼:",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 1966
+                },
+                {
+                    "X": 4438,
+                    "Y": 1966
+                },
+                {
+                    "X": 4438,
+                    "Y": 2159
+                },
+                {
+                    "X": 2631,
+                    "Y": 2159
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":19}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 1966,
+                "Width": 1807,
+                "Height": 193
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "嫒",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 538,
+                    "Y": 2186
+                },
+                {
+                    "X": 757,
+                    "Y": 2186
+                },
+                {
+                    "X": 757,
+                    "Y": 2392
+                },
+                {
+                    "X": 538,
+                    "Y": 2392
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":20}}",
+            "ItemPolygon": {
+                "X": 538,
+                "Y": 2186,
+                "Width": 219,
+                "Height": 206
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如爱ai4)令~。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 757,
+                    "Y": 2199
+                },
+                {
+                    "X": 1860,
+                    "Y": 2199
+                },
+                {
+                    "X": 1860,
+                    "Y": 2372
+                },
+                {
+                    "X": 757,
+                    "Y": 2372
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":21}}",
+            "ItemPolygon": {
+                "X": 757,
+                "Y": 2199,
+                "Width": 1103,
+                "Height": 173
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "~鱇。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2871,
+                    "Y": 2203
+                },
+                {
+                    "X": 3201,
+                    "Y": 2218
+                },
+                {
+                    "X": 3193,
+                    "Y": 2373
+                },
+                {
+                    "X": 2864,
+                    "Y": 2358
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":22}}",
+            "ItemPolygon": {
+                "X": 2864,
+                "Y": 2203,
+                "Width": 337,
+                "Height": 170
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "瑷",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 544,
+                    "Y": 2418
+                },
+                {
+                    "X": 750,
+                    "Y": 2418
+                },
+                {
+                    "X": 750,
+                    "Y": 2618
+                },
+                {
+                    "X": 544,
+                    "Y": 2618
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":23}}",
+            "ItemPolygon": {
+                "X": 544,
+                "Y": 2418,
+                "Width": 206,
+                "Height": 200
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如爱ai4)地名:",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 757,
+                    "Y": 2438
+                },
+                {
+                    "X": 1847,
+                    "Y": 2438
+                },
+                {
+                    "X": 1847,
+                    "Y": 2611
+                },
+                {
+                    "X": 757,
+                    "Y": 2611
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":24}}",
+            "ItemPolygon": {
+                "X": 757,
+                "Y": 2438,
+                "Width": 1090,
+                "Height": 173
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "~珲。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 1847,
+                    "Y": 2438
+                },
+                {
+                    "X": 2252,
+                    "Y": 2438
+                },
+                {
+                    "X": 2252,
+                    "Y": 2598
+                },
+                {
+                    "X": 1847,
+                    "Y": 2598
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":25}}",
+            "ItemPolygon": {
+                "X": 1847,
+                "Y": 2438,
+                "Width": 405,
+                "Height": 160
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "an",
+            "Confidence": 90,
+            "Polygon": [
+                {
+                    "X": 3495,
+                    "Y": 2564
+                },
+                {
+                    "X": 3707,
+                    "Y": 2564
+                },
+                {
+                    "X": 3707,
+                    "Y": 2744
+                },
+                {
+                    "X": 3495,
+                    "Y": 2744
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":26}}",
+            "ItemPolygon": {
+                "X": 3495,
+                "Y": 2564,
+                "Width": 212,
+                "Height": 180
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "叆",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 534,
+                    "Y": 2665
+                },
+                {
+                    "X": 739,
+                    "Y": 2657
+                },
+                {
+                    "X": 747,
+                    "Y": 2850
+                },
+                {
+                    "X": 541,
+                    "Y": 2858
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":27}}",
+            "ItemPolygon": {
+                "X": 534,
+                "Y": 2657,
+                "Width": 213,
+                "Height": 201
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如爱ai4)乌云~叇。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 737,
+                    "Y": 2671
+                },
+                {
+                    "X": 2126,
+                    "Y": 2671
+                },
+                {
+                    "X": 2126,
+                    "Y": 2850
+                },
+                {
+                    "X": 737,
+                    "Y": 2850
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":28}}",
+            "ItemPolygon": {
+                "X": 737,
+                "Y": 2671,
+                "Width": 1389,
+                "Height": 179
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "暧(音如爱ai4)昏~。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 538,
+                    "Y": 2897
+                },
+                {
+                    "X": 1867,
+                    "Y": 2897
+                },
+                {
+                    "X": 1867,
+                    "Y": 3089
+                },
+                {
+                    "X": 538,
+                    "Y": 3089
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":29}}",
+            "ItemPolygon": {
+                "X": 538,
+                "Y": 2897,
+                "Width": 1329,
+                "Height": 192
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "俺(安寒切án2)自称:~家乡。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 2877
+                },
+                {
+                    "X": 4378,
+                    "Y": 2877
+                },
+                {
+                    "X": 4378,
+                    "Y": 3083
+                },
+                {
+                    "X": 2631,
+                    "Y": 3083
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":30}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 2877,
+                "Width": 1747,
+                "Height": 206
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "埯(安寒切án2)点种瓜豆:",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2624,
+                    "Y": 3116
+                },
+                {
+                    "X": 4312,
+                    "Y": 3116
+                },
+                {
+                    "X": 4312,
+                    "Y": 3315
+                },
+                {
+                    "X": 2624,
+                    "Y": 3315
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":31}}",
+            "ItemPolygon": {
+                "X": 2624,
+                "Y": 3116,
+                "Width": 1688,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "an",
+            "Confidence": 91,
+            "Polygon": [
+                {
+                    "X": 1368,
+                    "Y": 3295
+                },
+                {
+                    "X": 1581,
+                    "Y": 3295
+                },
+                {
+                    "X": 1581,
+                    "Y": 3461
+                },
+                {
+                    "X": 1368,
+                    "Y": 3461
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":32}}",
+            "ItemPolygon": {
+                "X": 1368,
+                "Y": 3295,
+                "Width": 213,
+                "Height": 166
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "瓜，~豆。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2851,
+                    "Y": 3371
+                },
+                {
+                    "X": 3464,
+                    "Y": 3382
+                },
+                {
+                    "X": 3461,
+                    "Y": 3539
+                },
+                {
+                    "X": 2848,
+                    "Y": 3528
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":33}}",
+            "ItemPolygon": {
+                "X": 2848,
+                "Y": 3371,
+                "Width": 616,
+                "Height": 168
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "安",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 524,
+                    "Y": 3608
+                },
+                {
+                    "X": 750,
+                    "Y": 3608
+                },
+                {
+                    "X": 750,
+                    "Y": 3820
+                },
+                {
+                    "X": 524,
+                    "Y": 3820
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":34}}",
+            "ItemPolygon": {
+                "X": 524,
+                "Y": 3608,
+                "Width": 226,
+                "Height": 212
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如庵an1)居~思危。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 757,
+                    "Y": 3622
+                },
+                {
+                    "X": 2160,
+                    "Y": 3634
+                },
+                {
+                    "X": 2158,
+                    "Y": 3802
+                },
+                {
+                    "X": 756,
+                    "Y": 3789
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":35}}",
+            "ItemPolygon": {
+                "X": 756,
+                "Y": 3622,
+                "Width": 1404,
+                "Height": 180
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "揞(安寒切án2)~药粉。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2618,
+                    "Y": 3561
+                },
+                {
+                    "X": 4133,
+                    "Y": 3561
+                },
+                {
+                    "X": 4133,
+                    "Y": 3767
+                },
+                {
+                    "X": 2618,
+                    "Y": 3767
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":36}}",
+            "ItemPolygon": {
+                "X": 2618,
+                "Y": 3561,
+                "Width": 1515,
+                "Height": 206
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "厂",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 524,
+                    "Y": 3840
+                },
+                {
+                    "X": 704,
+                    "Y": 3840
+                },
+                {
+                    "X": 704,
+                    "Y": 4033
+                },
+                {
+                    "X": 524,
+                    "Y": 4033
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":37}}",
+            "ItemPolygon": {
+                "X": 524,
+                "Y": 3840,
+                "Width": 180,
+                "Height": 193
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "①(七氧切qüong3)工~。",
+            "Confidence": 96,
+            "Polygon": [
+                {
+                    "X": 704,
+                    "Y": 3840
+                },
+                {
+                    "X": 2287,
+                    "Y": 3859
+                },
+                {
+                    "X": 2285,
+                    "Y": 4051
+                },
+                {
+                    "X": 702,
+                    "Y": 4033
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":38}}",
+            "ItemPolygon": {
+                "X": 702,
+                "Y": 3840,
+                "Width": 1585,
+                "Height": 211
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "[白读]",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2903,
+                    "Y": 3834
+                },
+                {
+                    "X": 3209,
+                    "Y": 3834
+                },
+                {
+                    "X": 3209,
+                    "Y": 3980
+                },
+                {
+                    "X": 2903,
+                    "Y": 3980
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":39}}",
+            "ItemPolygon": {
+                "X": 2903,
+                "Y": 3834,
+                "Width": 306,
+                "Height": 146
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "音如翁ong1",
+            "Confidence": 90,
+            "Polygon": [
+                {
+                    "X": 3209,
+                    "Y": 3814
+                },
+                {
+                    "X": 3920,
+                    "Y": 3814
+                },
+                {
+                    "X": 3920,
+                    "Y": 3986
+                },
+                {
+                    "X": 3209,
+                    "Y": 3986
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":40}}",
+            "ItemPolygon": {
+                "X": 3209,
+                "Y": 3814,
+                "Width": 711,
+                "Height": 172
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "②",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 750,
+                    "Y": 4093
+                },
+                {
+                    "X": 910,
+                    "Y": 4093
+                },
+                {
+                    "X": 910,
+                    "Y": 4246
+                },
+                {
+                    "X": 750,
+                    "Y": 4246
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":41}}",
+            "ItemPolygon": {
+                "X": 750,
+                "Y": 4093,
+                "Width": 160,
+                "Height": 153
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如安an1)同“庵”，",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 904,
+                    "Y": 4091
+                },
+                {
+                    "X": 2359,
+                    "Y": 4110
+                },
+                {
+                    "X": 2357,
+                    "Y": 4278
+                },
+                {
+                    "X": 902,
+                    "Y": 4259
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":42}}",
+            "ItemPolygon": {
+                "X": 902,
+                "Y": 4091,
+                "Width": 1457,
+                "Height": 187
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "an",
+            "Confidence": 84,
+            "Polygon": [
+                {
+                    "X": 3481,
+                    "Y": 4192
+                },
+                {
+                    "X": 3701,
+                    "Y": 4192
+                },
+                {
+                    "X": 3701,
+                    "Y": 4359
+                },
+                {
+                    "X": 3481,
+                    "Y": 4359
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":43}}",
+            "ItemPolygon": {
+                "X": 3481,
+                "Y": 4192,
+                "Width": 220,
+                "Height": 167
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "多用于人名。",
+            "Confidence": 100,
+            "Polygon": [
+                {
+                    "X": 744,
+                    "Y": 4291
+                },
+                {
+                    "X": 1456,
+                    "Y": 4305
+                },
+                {
+                    "X": 1453,
+                    "Y": 4472
+                },
+                {
+                    "X": 741,
+                    "Y": 4459
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":44}}",
+            "ItemPolygon": {
+                "X": 741,
+                "Y": 4291,
+                "Width": 715,
+                "Height": 181
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "广①(音如安an1)同“庵”，",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 525,
+                    "Y": 4497
+                },
+                {
+                    "X": 2354,
+                    "Y": 4522
+                },
+                {
+                    "X": 2352,
+                    "Y": 4709
+                },
+                {
+                    "X": 522,
+                    "Y": 4684
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":45}}",
+            "ItemPolygon": {
+                "X": 522,
+                "Y": 4497,
+                "Width": 1832,
+                "Height": 212
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "犴①",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2624,
+                    "Y": 4505
+                },
+                {
+                    "X": 3010,
+                    "Y": 4505
+                },
+                {
+                    "X": 3010,
+                    "Y": 4704
+                },
+                {
+                    "X": 2624,
+                    "Y": 4704
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":46}}",
+            "ItemPolygon": {
+                "X": 2624,
+                "Y": 4505,
+                "Width": 386,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如限han5)狴~。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 3016,
+                    "Y": 4511
+                },
+                {
+                    "X": 4226,
+                    "Y": 4511
+                },
+                {
+                    "X": 4226,
+                    "Y": 4684
+                },
+                {
+                    "X": 3016,
+                    "Y": 4684
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":47}}",
+            "ItemPolygon": {
+                "X": 3016,
+                "Y": 4511,
+                "Width": 1210,
+                "Height": 173
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "多用于人名。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 751,
+                    "Y": 4743
+                },
+                {
+                    "X": 1456,
+                    "Y": 4752
+                },
+                {
+                    "X": 1454,
+                    "Y": 4918
+                },
+                {
+                    "X": 749,
+                    "Y": 4910
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":48}}",
+            "ItemPolygon": {
+                "X": 749,
+                "Y": 4743,
+                "Width": 707,
+                "Height": 175
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "②(音如谙han1)即驼鹿。",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 2856,
+                    "Y": 4754
+                },
+                {
+                    "X": 4338,
+                    "Y": 4723
+                },
+                {
+                    "X": 4341,
+                    "Y": 4884
+                },
+                {
+                    "X": 2859,
+                    "Y": 4914
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":49}}",
+            "ItemPolygon": {
+                "X": 2856,
+                "Y": 4723,
+                "Width": 1485,
+                "Height": 191
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "②(哥往切gong3)~阔，推~。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 744,
+                    "Y": 4943
+                },
+                {
+                    "X": 2421,
+                    "Y": 4981
+                },
+                {
+                    "X": 2418,
+                    "Y": 5140
+                },
+                {
+                    "X": 741,
+                    "Y": 5102
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":50}}",
+            "ItemPolygon": {
+                "X": 741,
+                "Y": 4943,
+                "Width": 1680,
+                "Height": 197
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "岸",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2631,
+                    "Y": 4957
+                },
+                {
+                    "X": 2844,
+                    "Y": 4957
+                },
+                {
+                    "X": 2844,
+                    "Y": 5149
+                },
+                {
+                    "X": 2631,
+                    "Y": 5149
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":51}}",
+            "ItemPolygon": {
+                "X": 2631,
+                "Y": 4957,
+                "Width": 213,
+                "Height": 192
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如雁ngan5)海~，彼~",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2836,
+                    "Y": 4963
+                },
+                {
+                    "X": 4430,
+                    "Y": 4942
+                },
+                {
+                    "X": 4432,
+                    "Y": 5111
+                },
+                {
+                    "X": 2838,
+                    "Y": 5133
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":52}}",
+            "ItemPolygon": {
+                "X": 2836,
+                "Y": 4942,
+                "Width": 1596,
+                "Height": 191
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "桉①(音如安an1)~树。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 518,
+                    "Y": 5149
+                },
+                {
+                    "X": 2066,
+                    "Y": 5149
+                },
+                {
+                    "X": 2066,
+                    "Y": 5355
+                },
+                {
+                    "X": 518,
+                    "Y": 5355
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":53}}",
+            "ItemPolygon": {
+                "X": 518,
+                "Y": 5149,
+                "Width": 1548,
+                "Height": 206
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "按",
+            "Confidence": 100,
+            "Polygon": [
+                {
+                    "X": 2624,
+                    "Y": 5183
+                },
+                {
+                    "X": 2837,
+                    "Y": 5183
+                },
+                {
+                    "X": 2837,
+                    "Y": 5375
+                },
+                {
+                    "X": 2624,
+                    "Y": 5375
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":54}}",
+            "ItemPolygon": {
+                "X": 2624,
+                "Y": 5183,
+                "Width": 213,
+                "Height": 192
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如暗an4)~语，提~，",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2836,
+                    "Y": 5197
+                },
+                {
+                    "X": 4412,
+                    "Y": 5177
+                },
+                {
+                    "X": 4414,
+                    "Y": 5349
+                },
+                {
+                    "X": 2838,
+                    "Y": 5370
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":55}}",
+            "ItemPolygon": {
+                "X": 2836,
+                "Y": 5177,
+                "Width": 1578,
+                "Height": 193
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "②",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 744,
+                    "Y": 5395
+                },
+                {
+                    "X": 916,
+                    "Y": 5395
+                },
+                {
+                    "X": 916,
+                    "Y": 5548
+                },
+                {
+                    "X": 744,
+                    "Y": 5548
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":56}}",
+            "ItemPolygon": {
+                "X": 744,
+                "Y": 5395,
+                "Width": 172,
+                "Height": 153
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如案an4)同“案”。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 917,
+                    "Y": 5392
+                },
+                {
+                    "X": 2327,
+                    "Y": 5411
+                },
+                {
+                    "X": 2325,
+                    "Y": 5572
+                },
+                {
+                    "X": 915,
+                    "Y": 5554
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":57}}",
+            "ItemPolygon": {
+                "X": 915,
+                "Y": 5392,
+                "Width": 1412,
+                "Height": 180
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "~诸史实。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2870,
+                    "Y": 5422
+                },
+                {
+                    "X": 3428,
+                    "Y": 5422
+                },
+                {
+                    "X": 3428,
+                    "Y": 5581
+                },
+                {
+                    "X": 2870,
+                    "Y": 5581
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":58}}",
+            "ItemPolygon": {
+                "X": 2870,
+                "Y": 5422,
+                "Width": 558,
+                "Height": 159
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "氨",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 518,
+                    "Y": 5601
+                },
+                {
+                    "X": 737,
+                    "Y": 5601
+                },
+                {
+                    "X": 737,
+                    "Y": 5807
+                },
+                {
+                    "X": 518,
+                    "Y": 5807
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":59}}",
+            "ItemPolygon": {
+                "X": 518,
+                "Y": 5601,
+                "Width": 219,
+                "Height": 206
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如安an1)~气，合成~。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 731,
+                    "Y": 5607
+                },
+                {
+                    "X": 2346,
+                    "Y": 5615
+                },
+                {
+                    "X": 2345,
+                    "Y": 5795
+                },
+                {
+                    "X": 730,
+                    "Y": 5787
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":60}}",
+            "ItemPolygon": {
+                "X": 730,
+                "Y": 5607,
+                "Width": 1616,
+                "Height": 188
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "胺(音如安an1)有机化合物:",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2623,
+                    "Y": 5621
+                },
+                {
+                    "X": 4411,
+                    "Y": 5613
+                },
+                {
+                    "X": 4412,
+                    "Y": 5806
+                },
+                {
+                    "X": 2624,
+                    "Y": 5814
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":61}}",
+            "ItemPolygon": {
+                "X": 2623,
+                "Y": 5613,
+                "Width": 1789,
+                "Height": 201
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "庵",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 524,
+                    "Y": 5834
+                },
+                {
+                    "X": 737,
+                    "Y": 5834
+                },
+                {
+                    "X": 737,
+                    "Y": 6033
+                },
+                {
+                    "X": 524,
+                    "Y": 6033
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":62}}",
+            "ItemPolygon": {
+                "X": 524,
+                "Y": 5834,
+                "Width": 213,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如安an1)寺~，~堂。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 730,
+                    "Y": 5854
+                },
+                {
+                    "X": 2285,
+                    "Y": 5854
+                },
+                {
+                    "X": 2285,
+                    "Y": 6026
+                },
+                {
+                    "X": 730,
+                    "Y": 6026
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":63}}",
+            "ItemPolygon": {
+                "X": 730,
+                "Y": 5854,
+                "Width": 1555,
+                "Height": 172
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "磺~嘧啶。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2850,
+                    "Y": 5854
+                },
+                {
+                    "X": 3435,
+                    "Y": 5854
+                },
+                {
+                    "X": 3435,
+                    "Y": 6006
+                },
+                {
+                    "X": 2850,
+                    "Y": 6006
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":64}}",
+            "ItemPolygon": {
+                "X": 2850,
+                "Y": 5854,
+                "Width": 585,
+                "Height": 152
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "谙(呼丹切han1)~熟，不~",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 524,
+                    "Y": 6073
+                },
+                {
+                    "X": 2418,
+                    "Y": 6073
+                },
+                {
+                    "X": 2418,
+                    "Y": 6272
+                },
+                {
+                    "X": 524,
+                    "Y": 6272
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":65}}",
+            "ItemPolygon": {
+                "X": 524,
+                "Y": 6073,
+                "Width": 1894,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "案",
+            "Confidence": 100,
+            "Polygon": [
+                {
+                    "X": 2624,
+                    "Y": 6040
+                },
+                {
+                    "X": 2844,
+                    "Y": 6040
+                },
+                {
+                    "X": 2844,
+                    "Y": 6239
+                },
+                {
+                    "X": 2624,
+                    "Y": 6239
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":66}}",
+            "ItemPolygon": {
+                "X": 2624,
+                "Y": 6040,
+                "Width": 220,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如案an4)方~，举~齐眉。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2836,
+                    "Y": 6060
+                },
+                {
+                    "X": 4471,
+                    "Y": 6039
+                },
+                {
+                    "X": 4473,
+                    "Y": 6213
+                },
+                {
+                    "X": 2838,
+                    "Y": 6233
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":67}}",
+            "ItemPolygon": {
+                "X": 2836,
+                "Y": 6039,
+                "Width": 1637,
+                "Height": 194
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "世事。又音庵an1。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 744,
+                    "Y": 6312
+                },
+                {
+                    "X": 1820,
+                    "Y": 6312
+                },
+                {
+                    "X": 1820,
+                    "Y": 6478
+                },
+                {
+                    "X": 744,
+                    "Y": 6478
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":68}}",
+            "ItemPolygon": {
+                "X": 744,
+                "Y": 6312,
+                "Width": 1076,
+                "Height": 166
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "暗",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2624,
+                    "Y": 6279
+                },
+                {
+                    "X": 2837,
+                    "Y": 6279
+                },
+                {
+                    "X": 2837,
+                    "Y": 6472
+                },
+                {
+                    "X": 2624,
+                    "Y": 6472
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":69}}",
+            "ItemPolygon": {
+                "X": 2624,
+                "Y": 6279,
+                "Width": 213,
+                "Height": 193
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "(音如案an4)~无天日。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2830,
+                    "Y": 6286
+                },
+                {
+                    "X": 4226,
+                    "Y": 6286
+                },
+                {
+                    "X": 4226,
+                    "Y": 6452
+                },
+                {
+                    "X": 2830,
+                    "Y": 6452
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":70}}",
+            "ItemPolygon": {
+                "X": 2830,
+                "Y": 6286,
+                "Width": 1396,
+                "Height": 166
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "媕(音如谙han1)形容无主见，",
+            "Confidence": 98,
+            "Polygon": [
+                {
+                    "X": 518,
+                    "Y": 6505
+                },
+                {
+                    "X": 2345,
+                    "Y": 6505
+                },
+                {
+                    "X": 2345,
+                    "Y": 6704
+                },
+                {
+                    "X": 518,
+                    "Y": 6704
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":71}}",
+            "ItemPolygon": {
+                "X": 518,
+                "Y": 6505,
+                "Width": 1827,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        },
+        {
+            "DetectedText": "黯(音如暗an4)~然失色。",
+            "Confidence": 99,
+            "Polygon": [
+                {
+                    "X": 2618,
+                    "Y": 6505
+                },
+                {
+                    "X": 4219,
+                    "Y": 6505
+                },
+                {
+                    "X": 4219,
+                    "Y": 6704
+                },
+                {
+                    "X": 2618,
+                    "Y": 6704
+                }
+            ],
+            "AdvancedInfo": "{\"Parag\":{\"ParagNo\":72}}",
+            "ItemPolygon": {
+                "X": 2618,
+                "Y": 6505,
+                "Width": 1601,
+                "Height": 199
+            },
+            "Words": [],
+            "WordCoordPoint": []
+        }
+    ],
+    "Angel": 0,
+    "Angle": 0,
+    "RequestId": "a74821f7-b076-4ae6-b2f6-bc4eb2f0a52c"
+}
