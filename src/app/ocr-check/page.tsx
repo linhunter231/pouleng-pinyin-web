@@ -29,6 +29,7 @@ export default function OcrCheckPage() {
   const [imageRenderedDimensions, setImageRenderedDimensions] = useState<{ width: number; height: number; naturalWidth: number; naturalHeight: number; offsetX: number; offsetY: number; containerHeight: number } | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const currentEditableInfo = useRef<{ element: HTMLDivElement; index: number; caretOffset?: number } | null>(null);
 
   const currentFileName = fileNames[currentImageIndex];
   const imageName = currentFileName ? `${currentFileName}.png` : '';
@@ -176,6 +177,114 @@ export default function OcrCheckPage() {
     setCurrentImageIndex(prevIndex => Math.min(fileNames.length - 1, prevIndex + 1));
   };
 
+  const insertPinyin = (pinyin: string) => {
+    if (!currentEditableInfo.current) return;
+    const { element, index } = currentEditableInfo.current;
+
+    // 保持焦点在可编辑元素
+    element.focus();
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    // 计算插入前的起始字符偏移（从元素起点到选区起点的字符数）
+    let range: Range;
+    if (selection.rangeCount > 0) {
+      range = selection.getRangeAt(0);
+      // 如果选区不在当前元素内，则移动到元素末尾
+      if (!element.contains(range.commonAncestorContainer)) {
+        range = document.createRange();
+        range.selectNodeContents(element);
+        range.collapse(false);
+      }
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(element);
+      range.collapse(false);
+    }
+
+    const startOffsetChars = (() => {
+      const pre = range.cloneRange();
+      pre.selectNodeContents(element);
+      pre.setEnd(range.startContainer, range.startOffset);
+      return pre.toString().length;
+    })();
+
+    // 删除当前选区内容并插入拼音字符
+    range.deleteContents();
+    const textNode = document.createTextNode(pinyin);
+    range.insertNode(textNode);
+
+    // 将光标临时放到新插入文本的末尾（避免立即跳到首位）
+    const caretRange = document.createRange();
+    caretRange.setStart(textNode, textNode.textContent ? textNode.textContent.length : pinyin.length);
+    caretRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(caretRange);
+
+    // 计算新的光标偏移并保存，待状态更新后恢复
+    const newCaretOffset = startOffsetChars + pinyin.length;
+    currentEditableInfo.current = { element, index, caretOffset: newCaretOffset };
+
+    // 更新 OCR 数据，并在渲染完成后恢复光标位置
+    // 使用双 requestAnimationFrame 确保 DOM 已完成更新和绘制
+    setTimeout(() => {
+      setOcrData(prevOcrData => {
+        if (!prevOcrData) return null;
+        const next = [...prevOcrData];
+        next[index] = { ...next[index], DetectedText: element.textContent || '' };
+        return next;
+      });
+
+      const restoreCaret = () => {
+        const info = currentEditableInfo.current;
+        const target = info?.element || element;
+        const offset = info?.caretOffset ?? newCaretOffset;
+
+        // 将光标恢复到指定字符偏移位置
+        const setCaretByOffset = (el: HTMLElement, charOffset: number) => {
+          const sel = window.getSelection();
+          if (!sel) return;
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+          let node = walker.nextNode() as Text | null;
+          let traversed = 0;
+          const range = document.createRange();
+          while (node) {
+            const nextTraversed = traversed + (node.textContent ? node.textContent.length : 0);
+            if (charOffset <= nextTraversed) {
+              const localOffset = Math.max(0, charOffset - traversed);
+              range.setStart(node, localOffset);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+              return;
+            }
+            traversed = nextTraversed;
+            node = walker.nextNode() as Text | null;
+          }
+          // 如果偏移超过文本长度，放到末尾
+          range.selectNodeContents(el);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        };
+
+        if (document.activeElement !== target) target.focus();
+        setCaretByOffset(target, offset);
+      };
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(restoreCaret);
+      });
+    }, 0);
+  };
+
+  // 拼音字符按钮，两行布局
+  const pinyinRows: string[][] = [
+    ['ā','á','ǎ','à','ē','é','ě','è','ī','í','ǐ','ì'],
+    ['ō','ó','ǒ','ò','ū','ú','ǔ','ù','ǖ','ǘ','ǚ','ǜ','ü'],
+  ];
+
   return (
     <div className="flex flex-grow">
       {/* Left Pane: Image */}
@@ -257,6 +366,25 @@ export default function OcrCheckPage() {
           >
             重置所有更改
           </button>
+          <div className="space-y-2">
+            {pinyinRows.map((row, idx) => (
+              <div key={idx} className="flex space-x-1">
+                {row.map((char) => (
+                  <button
+                    key={`${idx}-${char}`}
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-3 rounded text-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      insertPinyin(char);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    {char}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
         <div
           className="relative border border-gray-300 overflow-y-auto flex-grow"
@@ -328,6 +456,9 @@ export default function OcrCheckPage() {
                   title={detection.DetectedText}
                   contentEditable="true"
                   suppressContentEditableWarning={true}
+                  onFocus={(e) => {
+                    currentEditableInfo.current = { element: e.currentTarget, index };
+                  }}
                   onBlur={(e) => {
                     const newText = e.currentTarget.textContent || '';
                     setOcrData(prevOcrData => {
@@ -337,6 +468,7 @@ export default function OcrCheckPage() {
                       return newOcrData;
                     });
                     console.log(`Edited text for item ${index}:`, newText);
+                    currentEditableInfo.current = null;
                   }}
                 >
                   {detection.DetectedText}
