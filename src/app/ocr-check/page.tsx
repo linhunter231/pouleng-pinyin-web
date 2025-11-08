@@ -24,6 +24,19 @@ export default function OcrCheckPage() {
   const [error, setError] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  // Insert a visual line break at the caret inside a contentEditable element
+  const insertLineBreakAtCaret = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const br = document.createElement('br');
+    range.insertNode(br);
+    // Move caret after the inserted BR
+    range.setStartAfter(br);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
   const leftPaneRef = useRef<HTMLDivElement>(null);
   const [originalOcrDimensions, setOriginalOcrDimensions] = useState<{ width: number; height: number } | null>(null);
   const [imageRenderedDimensions, setImageRenderedDimensions] = useState<{ width: number; height: number; naturalWidth: number; naturalHeight: number; offsetX: number; offsetY: number; containerHeight: number } | null>(null);
@@ -461,12 +474,25 @@ export default function OcrCheckPage() {
                         0.4
                       })`,
                     }}
-                    title={detection.DetectedText}
-                    contentEditable="true"
-                    suppressContentEditableWarning={true}
-                    onFocus={(e) => {
-                      currentEditableInfo.current = { element: e.currentTarget, index };
-                    }}
+                  title={detection.DetectedText}
+                  contentEditable="true"
+                  suppressContentEditableWarning={true}
+                  onKeyDown={(e) => {
+                    // Shift+Enter: insert visual line break
+                    if (e.key === 'Enter' && e.shiftKey) {
+                      e.preventDefault();
+                      insertLineBreakAtCaret();
+                      return;
+                    }
+                    // Enter or Ctrl+Enter: exit edit (save on blur)
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      (e.currentTarget as HTMLElement).blur();
+                    }
+                  }}
+                  onFocus={(e) => {
+                    currentEditableInfo.current = { element: e.currentTarget, index };
+                  }}
                     onBlur={(e) => {
                       const newText = e.currentTarget.textContent || '';
                       setOcrData(prevOcrData => {
@@ -481,30 +507,109 @@ export default function OcrCheckPage() {
                   >
                     {detection.DetectedText}
                   </div>
-                <span style={{
-                  position: 'absolute',
-                  top: '-15px', // Adjust this value to position it correctly above the box
-                  left: '-15px', // Adjust this value to position it correctly to the left of the box
-                  fontSize: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  zIndex: 5, // Keep below sticky toolbar
-                }}>
-                  {JSON.parse(detection.AdvancedInfo).Parag.ParagNo}
-                </span>
-                <span style={{
-                  position: 'absolute',
-                  top: '-15px', // Adjust this value to position it correctly above the box
-                  right: '0px', // Adjust this value to position it correctly to the right of the box
-                  fontSize: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  zIndex: 5, // Keep below sticky toolbar
-                }}>
-                  {detection.Confidence}
-                </span>
+                   <span style={{
+                     position: 'absolute',
+                     top: '-15px', // Adjust this value to position it correctly above the box
+                     left: '-15px', // Adjust this value to position it correctly to the left of the box
+                     fontSize: '8px',
+                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                     padding: '2px 4px',
+                     borderRadius: '4px',
+                     zIndex: 5, // Keep below sticky toolbar
+                   }}
+                   contentEditable={true}
+                   suppressContentEditableWarning={true}
+                   title="页码 (ParagNo)"
+                   onKeyDown={(e) => {
+                     // Shift+Enter: insert visual line break
+                     if (e.key === 'Enter' && e.shiftKey) {
+                       e.preventDefault();
+                       insertLineBreakAtCaret();
+                       return;
+                     }
+                     // Enter or Ctrl+Enter: exit edit (save on blur)
+                     if (e.key === 'Enter') {
+                       e.preventDefault();
+                       (e.currentTarget as HTMLElement).blur();
+                     }
+                   }}
+                   onBlur={(e) => {
+                     const raw = (e.currentTarget.textContent || '').trim();
+                     const nextNo = Number(raw);
+                     if (Number.isNaN(nextNo)) {
+                       // If not a valid number, revert to current value
+                       e.currentTarget.textContent = String(
+                         (function() {
+                           try {
+                             return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                           } catch {
+                             return '';
+                           }
+                         })()
+                       );
+                       return;
+                     }
+                     setOcrData(prev => {
+                       if (!prev) return null;
+                       const next = [...prev];
+                       const item = { ...next[index] } as any;
+                       let adv: any = {};
+                       try {
+                         adv = JSON.parse(item.AdvancedInfo || '{}');
+                       } catch {
+                         adv = {};
+                       }
+                       if (!adv.Parag) adv.Parag = {};
+                       adv.Parag.ParagNo = nextNo;
+                       item.AdvancedInfo = JSON.stringify(adv);
+                       next[index] = item;
+                       return next;
+                     });
+                   }}
+                   >
+                     {(() => { try { return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? ''; } catch { return ''; } })()}
+                   </span>
+                   <span style={{
+                     position: 'absolute',
+                     top: '-15px', // Adjust this value to position it correctly above the box
+                     right: '0px', // Adjust this value to position it correctly to the right of the box
+                     fontSize: '8px',
+                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                     padding: '2px 4px',
+                     borderRadius: '4px',
+                     zIndex: 5, // Keep below sticky toolbar
+                   }}
+                   contentEditable={true}
+                   suppressContentEditableWarning={true}
+                   title="置信度 (Confidence)"
+                   onKeyDown={(e) => {
+                     if (e.key === 'Enter' && e.shiftKey) {
+                       e.preventDefault();
+                       insertLineBreakAtCaret();
+                       return;
+                     }
+                     if (e.key === 'Enter') {
+                       e.preventDefault();
+                       (e.currentTarget as HTMLElement).blur();
+                     }
+                   }}
+                   onBlur={(e) => {
+                     const raw = (e.currentTarget.textContent || '').trim();
+                     const nextVal = Number(raw);
+                     if (Number.isNaN(nextVal)) {
+                       e.currentTarget.textContent = String(detection.Confidence ?? '');
+                       return;
+                     }
+                     setOcrData(prev => {
+                       if (!prev) return null;
+                       const next = [...prev];
+                       next[index] = { ...next[index], Confidence: nextVal } as any;
+                       return next;
+                     });
+                   }}
+                   >
+                     {detection.Confidence}
+                   </span>
                 </div>
               );
             })}
