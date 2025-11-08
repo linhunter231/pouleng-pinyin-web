@@ -288,7 +288,7 @@ export default function OcrCheckPage() {
   return (
     <div className="flex flex-col flex-grow">
       {/* Top Toolbar spanning both panes */}
-      <div className="p-4 border-b border-gray-300 flex justify-between items-center">
+      <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-300 flex justify-between items-center">
         {/* Left controls */}
         <div className="flex items-center space-x-2">
           <button
@@ -481,30 +481,30 @@ export default function OcrCheckPage() {
                   >
                     {detection.DetectedText}
                   </div>
-                  <span style={{
-                    position: 'absolute',
-                    top: '-15px', // Adjust this value to position it correctly above the box
-                    left: '-15px', // Adjust this value to position it correctly to the left of the box
-                    fontSize: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    zIndex: 10, // Ensure it's above the text box
-                  }}>
-                    {JSON.parse(detection.AdvancedInfo).Parag.ParagNo}
-                  </span>
-                  <span style={{
-                    position: 'absolute',
-                    top: '-15px', // Adjust this value to position it correctly above the box
-                    right: '0px', // Adjust this value to position it correctly to the right of the box
-                    fontSize: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    zIndex: 10, // Ensure it's above the text box
-                  }}>
-                    {detection.Confidence}
-                  </span>
+                <span style={{
+                  position: 'absolute',
+                  top: '-15px', // Adjust this value to position it correctly above the box
+                  left: '-15px', // Adjust this value to position it correctly to the left of the box
+                  fontSize: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  zIndex: 5, // Keep below sticky toolbar
+                }}>
+                  {JSON.parse(detection.AdvancedInfo).Parag.ParagNo}
+                </span>
+                <span style={{
+                  position: 'absolute',
+                  top: '-15px', // Adjust this value to position it correctly above the box
+                  right: '0px', // Adjust this value to position it correctly to the right of the box
+                  fontSize: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  zIndex: 5, // Keep below sticky toolbar
+                }}>
+                  {detection.Confidence}
+                </span>
                 </div>
               );
             })}
