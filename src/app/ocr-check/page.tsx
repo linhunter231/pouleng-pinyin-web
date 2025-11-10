@@ -428,7 +428,7 @@ export default function OcrCheckPage() {
                 top: `${Y * scaleY}px`,
                 width: `${Width * scaleX}px`,
                 height: `${Height * scaleY}px`,
-                border: '1px solid rgba(0, 123, 255, 0.7)',
+                border: '1px solid rgba(0, 123, 255, 0.2)',
                 fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
                 overflow: 'hidden',
                 display: 'flex',
@@ -457,7 +457,7 @@ export default function OcrCheckPage() {
                       position: 'relative',
                       width: '100%',
                       height: '100%',
-                      border: '1px solid rgba(0, 123, 255, 0.7)',
+                      border: '1px solid rgba(0, 123, 255, 0.2)',
                       fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
                       overflow: 'hidden',
                       display: 'flex',
