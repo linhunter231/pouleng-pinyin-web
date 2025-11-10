@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import JSZip from 'jszip'; // Import JSZip
 
 interface OcrDetectionItem {
   DetectedText: string;
@@ -44,83 +45,241 @@ export default function OcrCheckPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const currentEditableInfo = useRef<{ element: HTMLDivElement; index: number; caretOffset?: number } | null>(null);
 
+  // Local mode states
+  const [imageZipFile, setImageZipFile] = useState<File | null>(null);
+  const [jsonZipFile, setJsonZipFile] = useState<File | null>(null);
+  const [localImageUrls, setLocalImageUrls] = useState<Record<string, string>>({});
+  const [localJsonData, setLocalJsonData] = useState<Record<string, any>>({});
+  const [editedLocalJsonData, setEditedLocalJsonData] = useState<Record<string, any>>({});
+  const [isLocalMode, setIsLocalMode] = useState<boolean>(false);
+
   const currentFileName = fileNames[currentImageIndex];
   const imageName = currentFileName ? `${currentFileName}.png` : '';
   const jsonName = currentFileName ? `${currentFileName}.json` : '';
   console.log("Current imageName:", imageName, "and jsonName:", jsonName);
 
+  // Effect to update editedLocalJsonData when ocrData changes for the current file
   useEffect(() => {
-    const fetchFileNames = async () => {
-      try {
-        const response = await fetch('/api/files');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setFileNames(data.files);
-        console.log("Fetched file names:", data.files);
-      } catch (e: any) {
-        console.error('Error fetching file names:', e);
-        setError(e.message);
-      }
+    if (isLocalMode && currentFileName && ocrData) {
+      setEditedLocalJsonData(prevData => ({
+        ...prevData,
+        [currentFileName]: {
+          ...prevData[currentFileName],
+          Response: {
+            ...prevData[currentFileName]?.Response,
+            TextDetections: ocrData,
+          },
+          TextDetections: ocrData, // Also update top-level if it exists
+        },
+      }));
+    }
+  }, [isLocalMode, currentFileName, ocrData]);
+
+  // Function to clean up object URLs when component unmounts or image URLs change
+  useEffect(() => {
+    return () => {
+      Object.values(localImageUrls).forEach(url => URL.revokeObjectURL(url));
     };
-    fetchFileNames();
-  }, []);
+  }, [localImageUrls]);
 
+  // Handlers for local file uploads
+  const handleImageZipUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImageZipFile(file);
+    setIsLocalMode(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const newImageUrls: Record<string, string> = {};
+      const newFileNames: string[] = [];
+
+      for (const relativePath in zip.files) {
+        const zipEntry = zip.files[relativePath];
+        if (!zipEntry.dir && (relativePath.endsWith('.png') || relativePath.endsWith('.jpg') || relativePath.endsWith('.jpeg'))) {
+          const blob = await zipEntry.async('blob');
+          const url = URL.createObjectURL(blob);
+          const fileName = relativePath.split('/').pop()?.split('.')[0]; // Get base name without extension
+          if (fileName) {
+            newImageUrls[fileName] = url;
+            newFileNames.push(fileName);
+          }
+        }
+      }
+      setLocalImageUrls(newImageUrls);
+      // Only set fileNames if JSON is not yet loaded, or if this is the primary source
+      if (Object.keys(localJsonData).length === 0) {
+        setFileNames(newFileNames.sort());
+      }
+      console.log("Loaded local image URLs:", newImageUrls);
+    } catch (e: any) {
+      console.error("Error loading image zip:", e);
+      setError(`Error loading image zip: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [localJsonData]);
+
+  const handleJsonZipUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setJsonZipFile(file);
+    setIsLocalMode(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const newJsonData: Record<string, any> = {};
+      const newFileNames: string[] = [];
+
+      for (const relativePath in zip.files) {
+        const zipEntry = zip.files[relativePath];
+        if (!zipEntry.dir && relativePath.endsWith('.json')) {
+          const text = await zipEntry.async('string');
+          const jsonData = JSON.parse(text);
+          const fileName = relativePath.split('/').pop()?.split('.')[0]; // Get base name without extension
+          if (fileName) {
+            newJsonData[fileName] = jsonData;
+            newFileNames.push(fileName);
+          }
+        }
+      }
+      setLocalJsonData(newJsonData);
+      setEditedLocalJsonData(newJsonData); // Initialize edited data with loaded data
+      // Only set fileNames if images are not yet loaded, or if this is the primary source
+      if (Object.keys(localImageUrls).length === 0) {
+        setFileNames(newFileNames.sort());
+      }
+      console.log("Loaded local JSON data:", newJsonData);
+    } catch (e: any) {
+      console.error("Error loading JSON zip:", e);
+      setError(`Error loading JSON zip: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [localImageUrls]);
+
+  // Effect to combine file names from both image and JSON zips
   useEffect(() => {
-    async function fetchOcrData() {
-        if (!jsonName) return; // Use the global jsonName and check if it's valid
+    if (isLocalMode) {
+      const imageKeys = Object.keys(localImageUrls);
+      const jsonKeys = Object.keys(localJsonData);
 
-        try {
-        setLoading(true);
-        // const currentFileName = fileNames[currentImageIndex]; // Removed
-        // const imageName = `${currentFileName}.png`; // Removed
-        // const jsonName = `${currentFileName}.json`; // Removed, using global jsonName
+      // Find common keys or combine unique keys, then sort
+      const combinedKeys = Array.from(new Set([...imageKeys, ...jsonKeys])).sort();
+      setFileNames(combinedKeys);
 
-        const response = await fetch(`/ocr_results/wdzh/${jsonName}`); // Use global jsonName
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+      // If both are loaded, try to set initial OCR data
+      if (imageKeys.length > 0 && jsonKeys.length > 0 && combinedKeys.length > 0) {
+        const firstKey = combinedKeys[0];
+        const data = localJsonData[firstKey];
+        const textDetections = data?.Response?.TextDetections || data?.TextDetections;
+        if (textDetections) {
+          setOcrData(textDetections as OcrResult);
+          setInitialOcrData(textDetections as OcrResult);
+        } else {
+          setOcrData([]);
+          setInitialOcrData([]);
         }
-        const data: any = await response.json(); // Fetch raw data first
-
-        // Extract TextDetections array, handling both direct and nested structures
-        const textDetections = data.Response?.TextDetections || data.TextDetections;
-
-        if (!textDetections) {
-          throw new Error("OCR data does not contain TextDetections.");
-        }
-        setOcrData(textDetections as OcrResult);
-        setInitialOcrData(textDetections as OcrResult); // Set initial OCR data
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
+        setCurrentImageIndex(0);
       }
     }
+  }, [isLocalMode, localImageUrls, localJsonData]);
 
-    fetchOcrData();
-  }, [jsonName, currentImageIndex]); // Updated dependency array
-
+  // Effect for fetching file names (remote mode) or setting OCR data (local mode)
   useEffect(() => {
-    const fetchImageDimensions = async () => {
-      console.log("Fetching image dimensions for: ", imageName);
-            if (imageName) {
+    if (!isLocalMode) {
+      const fetchFileNames = async () => {
         try {
-          const response = await fetch(`/api/image-info?imageName=${imageName}`);
+          setLoading(true);
+          const response = await fetch('/api/files');
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
-          setOriginalOcrDimensions({ width: data.width, height: data.height });
-          console.log("Fetched original image dimensions:", data);
-        } catch (error) {
-          console.error("Error fetching image dimensions:", error);
+          setFileNames(data.files);
+          console.log("Fetched file names:", data.files);
+        } catch (e: any) {
+          console.error('Error fetching file names:', e);
+          setError(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchFileNames();
+    } else if (isLocalMode && currentFileName) {
+      const data = localJsonData[currentFileName];
+      const textDetections = data?.Response?.TextDetections || data?.TextDetections;
+      if (textDetections) {
+        setOcrData(textDetections as OcrResult);
+        setInitialOcrData(textDetections as OcrResult);
+      } else {
+        setOcrData([]);
+        setInitialOcrData([]);
+      }
+    }
+  }, [isLocalMode, currentFileName, localJsonData]);
+
+  // Effect for fetching OCR data (remote mode) or setting image dimensions (local mode)
+  useEffect(() => {
+    if (!isLocalMode && jsonName) {
+      async function fetchOcrData() {
+        try {
+          setLoading(true);
+          const response = await fetch(`/ocr_results/wdzh/${jsonName}`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data: any = await response.json();
+          const textDetections = data.Response?.TextDetections || data.TextDetections;
+          if (!textDetections) {
+            throw new Error("OCR data does not contain TextDetections.");
+          }
+          setOcrData(textDetections as OcrResult);
+          setInitialOcrData(textDetections as OcrResult);
+        } catch (e: any) {
+          setError(e.message);
+        } finally {
+          setLoading(false);
         }
       }
-    };
+      fetchOcrData();
+    } else if (isLocalMode && currentFileName) {
+      // In local mode, image dimensions are derived from the loaded image itself
+      // No API call needed
+      if (imageRef.current) {
+        setOriginalOcrDimensions({ width: imageRef.current.naturalWidth, height: imageRef.current.naturalHeight });
+      }
+    }
+  }, [isLocalMode, jsonName, currentFileName, localJsonData]);
 
-    fetchImageDimensions();
-  }, [imageName, currentImageIndex, fileNames]);
+  // Effect for fetching image dimensions (remote mode)
+  useEffect(() => {
+    if (!isLocalMode) {
+      const fetchImageDimensions = async () => {
+        console.log("Fetching image dimensions for: ", imageName);
+        if (imageName) {
+          try {
+            const response = await fetch(`/api/image-info?imageName=${imageName}`);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            setOriginalOcrDimensions({ width: data.width, height: data.height });
+            console.log("Fetched original image dimensions:", data);
+          } catch (error) {
+            console.error("Error fetching image dimensions:", error);
+          }
+        }
+      };
+      fetchImageDimensions();
+    }
+  }, [isLocalMode, imageName, currentImageIndex, fileNames]);
 
   useEffect(() => {
     if (ocrData) {
@@ -132,8 +291,6 @@ export default function OcrCheckPage() {
         if (X + Width > maxX) maxX = X + Width;
         if (Y + Height > maxY) maxY = Y + Height;
       });
-      // Removed fixed offsets, now using actual image dimensions
-      // setOriginalOcrDimensions({ width: maxX, height: maxY }); // This line is removed
       console.log("originalOcrDimensions:", { width: maxX, height: maxY });
     }
   }, [ocrData]);
@@ -153,8 +310,6 @@ export default function OcrCheckPage() {
       console.log("Image Container Offset Width:", imageContainerRef.current.offsetWidth);
       console.log("Image Container Offset Height:", imageContainerRef.current.offsetHeight);
 
-      // setOriginalOcrDimensions({ width: naturalWidth, height: naturalHeight }); // This is now handled by API call
-
       const dimensions = {
         naturalWidth,
         naturalHeight,
@@ -168,6 +323,7 @@ export default function OcrCheckPage() {
     }
   };
 
+  // Re-instate handleResize effect to update image dimensions on window resize
   useEffect(() => {
     const handleResize = () => {
       handleImageLoad();
@@ -179,6 +335,7 @@ export default function OcrCheckPage() {
     };
   }, [imageRenderedDimensions]); // Depend on imageRenderedDimensions to re-run when it changes
 
+  // Re-add loading and error state checks
   if (loading) return <div className="flex justify-center items-center h-screen">加载中...</div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">错误: {error}</div>;
 
@@ -304,9 +461,31 @@ export default function OcrCheckPage() {
       <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-300 flex justify-between items-center">
         {/* Left controls */}
         <div className="flex items-center space-x-2">
+          <input
+            type="file"
+            accept=".zip"
+            onChange={handleImageZipUpload}
+            className="hidden"
+            id="imageZipUpload"
+          />
+          <label htmlFor="imageZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+            导入图片 ZIP
+          </label>
+
+          <input
+            type="file"
+            accept=".zip"
+            onChange={handleJsonZipUpload}
+            className="hidden"
+            id="jsonZipUpload"
+          />
+          <label htmlFor="jsonZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+            导入 JSON ZIP
+          </label>
+
           <button
             onClick={handlePrevious}
-            disabled={currentImageIndex === 0}
+            disabled={currentImageIndex === 0 || fileNames.length === 0}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             上一页
@@ -315,6 +494,7 @@ export default function OcrCheckPage() {
             value={currentImageIndex}
             onChange={(e) => setCurrentImageIndex(Number(e.target.value))}
             className="p-2 border rounded"
+            disabled={fileNames.length === 0}
           >
             {fileNames.map((name, index) => (
               <option key={name} value={index}>
@@ -324,7 +504,7 @@ export default function OcrCheckPage() {
           </select>
           <button
             onClick={handleNext}
-            disabled={currentImageIndex === fileNames.length - 1}
+            disabled={currentImageIndex === fileNames.length - 1 || fileNames.length === 0}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             下一页
@@ -336,22 +516,49 @@ export default function OcrCheckPage() {
           <button
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={async () => {
-              try {
-                const response = await fetch('/api/save-ocr', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(ocrData),
-                });
-                if (response.ok) {
-                  alert('OCR data saved successfully!');
-                } else {
-                  alert('Failed to save OCR data.');
+              if (isLocalMode) {
+                // Handle local save (download ZIP)
+                const zip = new JSZip();
+                for (const fileName in editedLocalJsonData) {
+                  const originalJson = editedLocalJsonData[fileName];
+                  // Reconstruct JSON with updated TextDetections
+                  const newJson = {
+                    ...originalJson,
+                    Response: {
+                      ...originalJson.Response,
+                      TextDetections: originalJson.Response?.TextDetections || originalJson.TextDetections,
+                    },
+                    TextDetections: originalJson.TextDetections, // Also update top-level if it exists
+                  };
+                  zip.file(`${fileName}.json`, JSON.stringify(newJson, null, 2));
                 }
-              } catch (error) {
-                console.error('Error saving OCR data:', error);
-                alert('Error saving OCR data.');
+                const content = await zip.generateAsync({ type: "blob" });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(content);
+                a.download = 'ocr_json_updated.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                alert('OCR data downloaded successfully!');
+              } else {
+                // Original remote save logic
+                try {
+                  const response = await fetch('/api/save-ocr', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(ocrData),
+                  });
+                  if (response.ok) {
+                    alert('OCR data saved successfully!');
+                  } else {
+                    alert('Failed to save OCR data.');
+                  }
+                } catch (error) {
+                  console.error('Error saving OCR data:', error);
+                  alert('Error saving OCR data.');
+                }
               }
             }}
           >
@@ -359,7 +566,21 @@ export default function OcrCheckPage() {
           </button>
           <button
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => setOcrData(initialOcrData)}
+            onClick={() => {
+              if (isLocalMode && currentFileName) {
+                const data = localJsonData[currentFileName];
+                const textDetections = data?.Response?.TextDetections || data?.TextDetections;
+                if (textDetections) {
+                  setOcrData(textDetections as OcrResult);
+                  setInitialOcrData(textDetections as OcrResult);
+                } else {
+                  setOcrData([]);
+                  setInitialOcrData([]);
+                }
+              } else {
+                setOcrData(initialOcrData);
+              }
+            }}
           >
             重置所有更改
           </button>
@@ -393,13 +614,15 @@ export default function OcrCheckPage() {
             {imageName && (
               <Image
                 ref={imageRef}
-                src={`/images/wdzh/${imageName}`}
+                src={isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`}
                 alt="OCR Image"
                 layout="responsive"
                 width={1000} // These are intrinsic width/height hints for Next.js, not necessarily rendered size
                 height={1500}
                 objectFit="contain"
                 onLoad={handleImageLoad}
+                onError={(e) => console.error("Image failed to load:", e.currentTarget.src)}
+                unoptimized={isLocalMode} // Disable Next.js Image optimization for local Blob URLs
               />
             )}
           </div>
