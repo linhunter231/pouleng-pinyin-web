@@ -25,6 +25,7 @@ export default function OcrCheckPage() {
   const [error, setError] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [focusedElementIndex, setFocusedElementIndex] = useState<number | null>(null); // New state for tracking focused element
   // Insert a visual line break at the caret inside a contentEditable element
   const insertLineBreakAtCaret = () => {
     const sel = window.getSelection();
@@ -43,7 +44,8 @@ export default function OcrCheckPage() {
   const [imageRenderedDimensions, setImageRenderedDimensions] = useState<{ width: number; height: number; naturalWidth: number; naturalHeight: number; offsetX: number; offsetY: number; containerHeight: number } | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
-  const currentEditableInfo = useRef<{ element: HTMLDivElement; index: number; caretOffset?: number } | null>(null);
+  const currentEditableInfo = useRef<{ element: HTMLElement; index: number; caretOffset?: number } | null>(null);
+  const pinyinButtonsRef = useRef<HTMLDivElement>(null);
 
   // Local mode states
   const [imageZipFile, setImageZipFile] = useState<File | null>(null);
@@ -52,6 +54,13 @@ export default function OcrCheckPage() {
   const [localJsonData, setLocalJsonData] = useState<Record<string, any>>({});
   const [editedLocalJsonData, setEditedLocalJsonData] = useState<Record<string, any>>({});
   const [isLocalMode, setIsLocalMode] = useState<boolean>(false);
+
+  // Function to clean up object URLs when component unmounts or image URLs change
+  useEffect(() => {
+    return () => {
+      Object.values(localImageUrls).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [localImageUrls]);
 
   const currentFileName = fileNames[currentImageIndex];
   const imageName = currentFileName ? `${currentFileName}.png` : '';
@@ -74,13 +83,6 @@ export default function OcrCheckPage() {
       }));
     }
   }, [isLocalMode, currentFileName, ocrData]);
-
-  // Function to clean up object URLs when component unmounts or image URLs change
-  useEffect(() => {
-    return () => {
-      Object.values(localImageUrls).forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [localImageUrls]);
 
   // Handlers for local file uploads
   const handleImageZipUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +260,19 @@ export default function OcrCheckPage() {
     }
   }, [isLocalMode, jsonName, currentFileName, localJsonData]);
 
+  // Effect to reset states when isLocalMode changes
+  useEffect(() => {
+    setOcrData(null);
+    setInitialOcrData(null);
+    setFileNames([]);
+    setCurrentImageIndex(0);
+    setLocalImageUrls({});
+    setLocalJsonData({});
+    setEditedLocalJsonData({});
+    setError(null);
+    setLoading(false);
+  }, [isLocalMode]);
+
   // Effect for fetching image dimensions (remote mode)
   useEffect(() => {
     if (!isLocalMode) {
@@ -335,10 +350,6 @@ export default function OcrCheckPage() {
     };
   }, [imageRenderedDimensions]); // Depend on imageRenderedDimensions to re-run when it changes
 
-  // Re-add loading and error state checks
-  if (loading) return <div className="flex justify-center items-center h-screen">加载中...</div>;
-  if (error) return <div className="flex justify-center items-center h-screen text-red-500">错误: {error}</div>;
-
   const handlePrevious = () => {
     setCurrentImageIndex(prevIndex => Math.max(0, prevIndex - 1));
   };
@@ -346,6 +357,18 @@ export default function OcrCheckPage() {
   const handleNext = () => {
     setCurrentImageIndex(prevIndex => Math.min(fileNames.length - 1, prevIndex + 1));
   };
+
+  const handleNextImage = useCallback(() => {
+    setCurrentImageIndex(prevIndex => Math.min(prevIndex + 1, fileNames.length - 1));
+  }, [fileNames.length]);
+
+  const handlePreviousImage = useCallback(() => {
+    setCurrentImageIndex(prevIndex => Math.max(prevIndex - 1, 0));
+  }, [fileNames.length]);
+
+  // Re-add loading and error state checks
+  if (loading) return <div className="flex justify-center items-center h-screen">加载中...</div>;
+  if (error) return <div className="flex justify-center items-center h-screen text-red-500">错误: {error}</div>;
 
   const insertPinyin = (pinyin: string) => {
     if (!currentEditableInfo.current) return;
@@ -397,56 +420,54 @@ export default function OcrCheckPage() {
     currentEditableInfo.current = { element, index, caretOffset: newCaretOffset };
 
     // 更新 OCR 数据，并在渲染完成后恢复光标位置
-    // 使用双 requestAnimationFrame 确保 DOM 已完成更新和绘制
-    setTimeout(() => {
-      setOcrData(prevOcrData => {
-        if (!prevOcrData) return null;
-        const next = [...prevOcrData];
-        next[index] = { ...next[index], DetectedText: element.textContent || '' };
-        return next;
-      });
+    // 使用 requestAnimationFrame 确保 DOM 已完成更新和绘制
+    setOcrData(prevOcrData => {
+      if (!prevOcrData) return null;
+      const next = [...prevOcrData];
+      next[index] = { ...next[index], DetectedText: element.textContent || '' };
+      return next;
+    });
 
-      const restoreCaret = () => {
-        const info = currentEditableInfo.current;
-        const target = info?.element || element;
-        const offset = info?.caretOffset ?? newCaretOffset;
+    const restoreCaret = () => {
+      const info = currentEditableInfo.current;
+      const target = info?.element || element;
+      const offset = info?.caretOffset ?? newCaretOffset;
 
-        // 将光标恢复到指定字符偏移位置
-        const setCaretByOffset = (el: HTMLElement, charOffset: number) => {
-          const sel = window.getSelection();
-          if (!sel) return;
-          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-          let node = walker.nextNode() as Text | null;
-          let traversed = 0;
-          const range = document.createRange();
-          while (node) {
-            const nextTraversed = traversed + (node.textContent ? node.textContent.length : 0);
-            if (charOffset <= nextTraversed) {
-              const localOffset = Math.max(0, charOffset - traversed);
-              range.setStart(node, localOffset);
-              range.collapse(true);
-              sel.removeAllRanges();
-              sel.addRange(range);
-              return;
-            }
-            traversed = nextTraversed;
-            node = walker.nextNode() as Text | null;
+      // 将光标恢复到指定字符偏移位置
+      const setCaretByOffset = (el: HTMLElement, charOffset: number) => {
+        const sel = window.getSelection();
+        if (!sel) return;
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+        let node = walker.nextNode() as Text | null;
+        let traversed = 0;
+        const range = document.createRange();
+        while (node) {
+          const nextTraversed = traversed + (node.textContent ? node.textContent.length : 0);
+          if (charOffset <= nextTraversed) {
+            const localOffset = Math.max(0, charOffset - traversed);
+            range.setStart(node, localOffset);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return;
           }
-          // 如果偏移超过文本长度，放到末尾
-          range.selectNodeContents(el);
-          range.collapse(false);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        };
-
-        if (document.activeElement !== target) target.focus();
-        setCaretByOffset(target, offset);
+          traversed = nextTraversed;
+          node = walker.nextNode() as Text | null;
+        }
+        // 如果偏移超过文本长度，放到末尾
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
       };
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(restoreCaret);
-      });
-    }, 0);
+      if (document.activeElement !== target) target.focus();
+      setCaretByOffset(target, offset);
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(restoreCaret);
+    });
   };
 
   // 拼音字符按钮，两行布局
@@ -482,6 +503,13 @@ export default function OcrCheckPage() {
           <label htmlFor="jsonZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
             导入 JSON ZIP
           </label>
+
+          <button
+            className={`py-2 px-4 rounded font-bold ${isLocalMode ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-800'}`}
+            onClick={() => setIsLocalMode(!isLocalMode)}
+          >
+            {isLocalMode ? '本地模式' : '远程模式'}
+          </button>
 
           <button
             onClick={handlePrevious}
@@ -584,25 +612,29 @@ export default function OcrCheckPage() {
           >
             重置所有更改
           </button>
-          <div className="space-y-2">
+          <div className="space-y-2" ref={pinyinButtonsRef}>
             {pinyinRows.map((row, idx) => (
               <div key={idx} className="flex space-x-1">
                 {row.map((char) => (
                   <button
                     key={`${idx}-${char}`}
-                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-3 rounded text-sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      insertPinyin(char);
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent button from taking focus
                     }}
-                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      if (currentEditableInfo.current) {
+                        insertPinyin(char, currentEditableInfo.current.element, currentEditableInfo.current.index);
+                      }
+                    }}
+                    className={`px-2 py-1 rounded text-sm font-medium ${char === '' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                    disabled={char === ''}
                   >
-                    {char}
+                    {char === '' ? '' : char}
                   </button>
                 ))}
               </div>
             ))}
-          </div>
+          </div> {/* Closing div for space-y-2 */}
         </div>
       </div>
 
@@ -680,7 +712,7 @@ export default function OcrCheckPage() {
                       position: 'relative',
                       width: '100%',
                       height: '100%',
-                      border: '1px solid rgba(0, 123, 255, 0.2)',
+                      border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.2)'}`, // Dynamic border color based on focusedElementIndex
                       fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
                       overflow: 'hidden',
                       display: 'flex',
@@ -715,8 +747,20 @@ export default function OcrCheckPage() {
                   }}
                   onFocus={(e) => {
                     currentEditableInfo.current = { element: e.currentTarget, index };
+                    setFocusedElementIndex(index); // Set focused element index
                   }}
                     onBlur={(e) => {
+                      console.log("onBlur triggered. relatedTarget:", e.relatedTarget);
+                      const isPinyinButtonFocused = pinyinButtonsRef.current && pinyinButtonsRef.current.contains(e.relatedTarget as Node);
+                      console.log("isPinyinButtonFocused:", isPinyinButtonFocused);
+
+                      // Check if the new focused element is within the pinyin buttons container
+                      if (isPinyinButtonFocused) {
+                        // If a pinyin button was clicked, do not clear currentEditableInfo and keep focusedElementIndex
+                        return;
+                      }
+
+                      setFocusedElementIndex(null); // Clear focused element index
                       const newText = e.currentTarget.textContent || '';
                       setOcrData(prevOcrData => {
                         if (!prevOcrData) return null;
@@ -769,76 +813,103 @@ export default function OcrCheckPage() {
                              return '';
                            }
                          })()
-                       );
-                       return;
-                     }
-                     setOcrData(prev => {
-                       if (!prev) return null;
-                       const next = [...prev];
-                       const item = { ...next[index] } as any;
-                       let adv: any = {};
-                       try {
-                         adv = JSON.parse(item.AdvancedInfo || '{}');
-                       } catch {
-                         adv = {};
-                       }
-                       if (!adv.Parag) adv.Parag = {};
-                       adv.Parag.ParagNo = nextNo;
-                       item.AdvancedInfo = JSON.stringify(adv);
-                       next[index] = item;
-                       return next;
-                     });
-                   }}
-                   >
-                     {(() => { try { return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? ''; } catch { return ''; } })()}
-                   </span>
-                   <span style={{
-                     position: 'absolute',
-                     top: '-15px', // Adjust this value to position it correctly above the box
-                     right: '0px', // Adjust this value to position it correctly to the right of the box
-                     fontSize: '8px',
-                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                     padding: '2px 4px',
-                     borderRadius: '4px',
-                     zIndex: 5, // Keep below sticky toolbar
-                   }}
-                   contentEditable={true}
-                   suppressContentEditableWarning={true}
-                   title="置信度 (Confidence)"
-                   onKeyDown={(e) => {
-                     if (e.key === 'Enter' && e.shiftKey) {
-                       e.preventDefault();
-                       insertLineBreakAtCaret();
-                       return;
-                     }
-                     if (e.key === 'Enter') {
-                       e.preventDefault();
-                       (e.currentTarget as HTMLElement).blur();
-                     }
-                   }}
-                   onBlur={(e) => {
-                     const raw = (e.currentTarget.textContent || '').trim();
-                     const nextVal = Number(raw);
-                     if (Number.isNaN(nextVal)) {
-                       e.currentTarget.textContent = String(detection.Confidence ?? '');
-                       return;
-                     }
-                     setOcrData(prev => {
-                       if (!prev) return null;
-                       const next = [...prev];
-                       next[index] = { ...next[index], Confidence: nextVal } as any;
-                       return next;
-                     });
-                   }}
-                   >
-                     {detection.Confidence}
-                   </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+                                   );
+                                       return;
+                                     }
+                                     setOcrData(prev => {
+                                       if (!prev) return null;
+                                       const next = [...prev];
+                                       const item = { ...next[index] } as any;
+                                       let adv: any = {};
+                                       try {
+                                         adv = JSON.parse(item.AdvancedInfo);
+                                       } catch (e) {
+                                         console.error("Error parsing AdvancedInfo:", e);
+                                       }
+                                       adv.Parag = { ...adv.Parag, ParagNo: nextNo };
+                                       item.AdvancedInfo = JSON.stringify(adv);
+                                       next[index] = item;
+                                       return next;
+                                     });
+                                   }}
+                                   >
+                                     {(function() {
+                                       try {
+                                         return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                                       } catch {
+                                         return '';
+                                       }
+                                     })()}
+                                   </span>
+                                   <span style={{
+                                     position: 'absolute',
+                                     top: '-15px', // Adjust this value to position it correctly above the box
+                                     right: '-15px', // Adjust this value to position it correctly to the right of the box
+                                     fontSize: '8px',
+                                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                     padding: '2px 4px',
+                                     borderRadius: '4px',
+                                     zIndex: 5, // Keep below sticky toolbar
+                                   }}
+                                   contentEditable={true}
+                                   suppressContentEditableWarning={true}
+                                   title="置信度 (Confidence)"
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter' && e.shiftKey) {
+                                       e.preventDefault();
+                                       insertLineBreakAtCaret();
+                                       return;
+                                     }
+                                     if (e.key === 'Enter') {
+                                       e.preventDefault();
+                                       (e.currentTarget as HTMLElement).blur();
+                                     }
+                                   }}
+                                   onBlur={(e) => {
+                                     const raw = (e.currentTarget.textContent || '').trim();
+                                     const nextVal = Number(raw);
+                                     if (Number.isNaN(nextVal)) {
+                                       e.currentTarget.textContent = String(detection.Confidence ?? '');
+                                       return;
+                                     }
+                                     setOcrData(prev => {
+                                       if (!prev) return null;
+                                       const next = [...prev];
+                                       next[index] = { ...next[index], Confidence: nextVal } as any;
+                                       return next;
+                                     });
+                                   }}
+                                   >
+                                     {detection.Confidence}
+                                   </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="flex flex-col p-4 space-y-4">
+                            <button onClick={handleJsonZipUpload} className="mb-4 w-full">上传 JSON ZIP 文件</button>
+                            <button onClick={handleImageZipUpload} className="mb-4 w-full">上传图片 ZIP 文件</button>
+                            {isLocalMode && (
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={handlePreviousImage}
+                                  disabled={currentImageIndex === 0}
+                                  className="flex-1"
+                                >
+                                  上一张
+                                </button>
+                                <button
+                                  onClick={handleNextImage}
+                                  disabled={currentImageIndex === fileNames.length - 1}
+                                  className="flex-1"
+                                >
+                                  下一张
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
 }
