@@ -886,28 +886,6 @@ export default function OcrCheckPage() {
                               );
                             })}
                           </div>
-                          <div className="flex flex-col p-4 space-y-4">
-                            <button onClick={handleJsonZipUpload} className="mb-4 w-full">上传 JSON ZIP 文件</button>
-                            <button onClick={handleImageZipUpload} className="mb-4 w-full">上传图片 ZIP 文件</button>
-                            {isLocalMode && (
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={handlePreviousImage}
-                                  disabled={currentImageIndex === 0}
-                                  className="flex-1"
-                                >
-                                  上一张
-                                </button>
-                                <button
-                                  onClick={handleNextImage}
-                                  disabled={currentImageIndex === fileNames.length - 1}
-                                  className="flex-1"
-                                >
-                                  下一张
-                                </button>
-                              </div>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </div>
