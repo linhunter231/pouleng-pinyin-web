@@ -705,7 +705,7 @@ export default function OcrCheckPage() {
                     }}
                     onClick={() => {
                       if (currentEditableInfo.current) {
-                        insertPinyin(char, currentEditableInfo.current.element, currentEditableInfo.current.index);
+                        insertPinyin(char);
                       }
                     }}
                     className={`px-2 py-1 rounded text-sm font-medium ${char === '' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
