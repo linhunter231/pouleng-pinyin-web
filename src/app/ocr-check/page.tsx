@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import JSZip from 'jszip'; // Import JSZip
 
@@ -46,6 +46,9 @@ export default function OcrCheckPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const currentEditableInfo = useRef<{ element: HTMLElement; index: number; caretOffset?: number } | null>(null);
   const pinyinButtonsRef = useRef<HTMLDivElement>(null);
+  const rightRawRef = useRef<HTMLDivElement>(null);
+  const rightParagraphRef = useRef<HTMLDivElement>(null);
+  const isSyncingScrollRef = useRef(false);
 
   // Local mode states
   const [imageZipFile, setImageZipFile] = useState<File | null>(null);
@@ -54,6 +57,85 @@ export default function OcrCheckPage() {
   const [localJsonData, setLocalJsonData] = useState<Record<string, any>>({});
   const [editedLocalJsonData, setEditedLocalJsonData] = useState<Record<string, any>>({});
   const [isLocalMode, setIsLocalMode] = useState<boolean>(false);
+
+  // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
+  const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
+
+  // 同步左右两侧的滚动（在原始JSON/按段号模式下）
+  useEffect(() => {
+    const leftEl = leftPaneRef.current;
+    const rightEl = rightViewMode === 'raw' ? rightRawRef.current : rightViewMode === 'paragraph' ? rightParagraphRef.current : null;
+    if (!leftEl || !rightEl) return;
+
+    const handleLeftScroll = () => {
+      if (isSyncingScrollRef.current) return;
+      isSyncingScrollRef.current = true;
+      rightEl.scrollTop = leftEl.scrollTop;
+      isSyncingScrollRef.current = false;
+    };
+    const handleRightScroll = () => {
+      if (isSyncingScrollRef.current) return;
+      isSyncingScrollRef.current = true;
+      leftEl.scrollTop = rightEl.scrollTop;
+      isSyncingScrollRef.current = false;
+    };
+
+    leftEl.addEventListener('scroll', handleLeftScroll);
+    rightEl.addEventListener('scroll', handleRightScroll);
+    return () => {
+      leftEl.removeEventListener('scroll', handleLeftScroll);
+      rightEl.removeEventListener('scroll', handleRightScroll);
+    };
+  }, [rightViewMode]);
+
+  // 从 AdvancedInfo 中安全读取 ParagNo
+  const getParagNo = (item: OcrDetectionItem): number | null => {
+    try {
+      const adv = JSON.parse(item.AdvancedInfo || '{}');
+      const val = adv?.Parag?.ParagNo;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        const n = Number(val);
+        return Number.isNaN(n) ? null : n;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 段号聚合与排序：按 ParagNo 排序，再按 Y/X；拼接文本
+  const paragraphLines = useMemo(() => {
+    if (!ocrData || ocrData.length === 0) return [] as { paragNo: number | null; text: string }[];
+    const groups = new Map<number | null, OcrDetectionItem[]>();
+    for (const d of ocrData) {
+      const key = getParagNo(d);
+      const arr = groups.get(key) || [];
+      arr.push(d);
+      groups.set(key, arr);
+    }
+    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a - b;
+    });
+    const lines: { paragNo: number | null; text: string }[] = [];
+    for (const k of sortedKeys) {
+      const arr = groups.get(k)!;
+      arr.sort((p, q) => {
+        const py = p.ItemPolygon?.Y ?? 0;
+        const qy = q.ItemPolygon?.Y ?? 0;
+        if (py !== qy) return py - qy;
+        const px = p.ItemPolygon?.X ?? 0;
+        const qx = q.ItemPolygon?.X ?? 0;
+        return px - qx;
+      });
+      const text = arr.map(x => (x.DetectedText || '').trim()).filter(Boolean).join(' ');
+      lines.push({ paragNo: k, text });
+    }
+    return lines;
+  }, [ocrData]);
 
   // Function to clean up object URLs when component unmounts or image URLs change
   useEffect(() => {
@@ -635,6 +717,27 @@ export default function OcrCheckPage() {
               </div>
             ))}
           </div> {/* Closing div for space-y-2 */}
+          {/* 右侧视图模式切换（与拼音按钮同属sticky工具栏） */}
+          <div className="flex items-center gap-2 text-sm">
+            <button
+              className={`px-2 py-1 rounded ${rightViewMode === 'overlay' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setRightViewMode('overlay')}
+            >
+              图上定位文本
+            </button>
+            <button
+              className={`px-2 py-1 rounded ${rightViewMode === 'raw' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setRightViewMode('raw')}
+            >
+              原始 JSON
+            </button>
+            <button
+              className={`px-2 py-1 rounded ${rightViewMode === 'paragraph' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setRightViewMode('paragraph')}
+            >
+              按段号输出文本
+            </button>
+          </div>
         </div>
       </div>
 
@@ -661,15 +764,13 @@ export default function OcrCheckPage() {
         </div>
 
         {/* Right Pane: OCR Detected Text on Image */}
-        <div className="p-4 overflow-auto flex flex-col flex-grow basis-0">
-          <div
-            className="relative border border-gray-300 overflow-y-auto flex-grow"
-            style={imageRenderedDimensions ? {
-                // width: `${imageRenderedDimensions.width}px`,
-                // height: `${imageRenderedDimensions.containerHeight}px`,
-                // marginLeft: `${imageRenderedDimensions.offsetX}px`,
-                // marginTop: `${imageRenderedDimensions.offsetY}px`,
-              } : {}}
+        <div className="p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0">
+          {rightViewMode === 'overlay' && (
+            <div
+              className="relative border border-gray-300 overflow-y-auto"
+              style={imageRenderedDimensions ? {
+                  height: `${imageRenderedDimensions.containerHeight}px`,
+                } : {}}
             >
             {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
               const { X, Y, Width, Height } = detection.ItemPolygon;
@@ -886,6 +987,26 @@ export default function OcrCheckPage() {
                               );
                             })}
                           </div>
+          )}
+            {rightViewMode === 'raw' && (
+              <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightRawRef}
+                   style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
+                <pre className="font-mono text-xs whitespace-pre-wrap break-words">{JSON.stringify(ocrData ?? [], null, 2)}</pre>
+              </div>
+            )}
+            {rightViewMode === 'paragraph' && (
+              <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightParagraphRef}
+                   style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
+                <ol className="list-decimal pl-4 space-y-1 text-sm">
+                  {paragraphLines.map((line, idx) => (
+                    <li key={`parag-${line.paragNo ?? 'none'}-${idx}`}>
+                      <span className="text-gray-500 mr-2">{line.paragNo ?? '—'}</span>
+                      <span>{line.text}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
                         </div>
                       </div>
                     </div>
