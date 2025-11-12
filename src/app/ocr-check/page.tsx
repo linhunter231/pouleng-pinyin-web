@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import JSZip from 'jszip'; // Import JSZip
+import { useSearchParams } from 'next/navigation'; // Import useSearchParams
 
 interface OcrDetectionItem {
   DetectedText: string;
@@ -19,6 +20,9 @@ interface OcrDetectionItem {
 type OcrResult = OcrDetectionItem[];
 
 export default function OcrCheckPage() {
+  const searchParams = useSearchParams();
+  const enableRemote = searchParams.get('remote') === 'true'; // Check if remote mode is enabled via URL parameter
+  
   const [ocrData, setOcrData] = useState<OcrResult | null>(null);
   const [initialOcrData, setInitialOcrData] = useState<OcrResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +60,7 @@ export default function OcrCheckPage() {
   const [localImageUrls, setLocalImageUrls] = useState<Record<string, string>>({});
   const [localJsonData, setLocalJsonData] = useState<Record<string, any>>({});
   const [editedLocalJsonData, setEditedLocalJsonData] = useState<Record<string, any>>({});
-  const [isLocalMode, setIsLocalMode] = useState<boolean>(false);
+  const [isLocalMode, setIsLocalMode] = useState<boolean>(!enableRemote); // Set initial mode based on URL parameter
 
   // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
   const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
@@ -277,7 +281,7 @@ export default function OcrCheckPage() {
 
   // Effect for fetching file names (remote mode) or setting OCR data (local mode)
   useEffect(() => {
-    if (!isLocalMode) {
+    if (!isLocalMode && enableRemote) { // Only fetch in remote mode when it's enabled
       const fetchFileNames = async () => {
         try {
           setLoading(true);
@@ -307,11 +311,11 @@ export default function OcrCheckPage() {
         setInitialOcrData([]);
       }
     }
-  }, [isLocalMode, currentFileName, localJsonData]);
+  }, [isLocalMode, currentFileName, localJsonData, enableRemote]);
 
   // Effect for fetching OCR data (remote mode) or setting image dimensions (local mode)
   useEffect(() => {
-    if (!isLocalMode && jsonName) {
+    if (!isLocalMode && jsonName && enableRemote) { // Only fetch in remote mode when it's enabled
       async function fetchOcrData() {
         try {
           setLoading(true);
@@ -340,7 +344,7 @@ export default function OcrCheckPage() {
         setOriginalOcrDimensions({ width: imageRef.current.naturalWidth, height: imageRef.current.naturalHeight });
       }
     }
-  }, [isLocalMode, jsonName, currentFileName, localJsonData]);
+  }, [isLocalMode, jsonName, currentFileName, localJsonData, enableRemote]);
 
   // Effect to reset states when isLocalMode changes
   useEffect(() => {
@@ -357,7 +361,7 @@ export default function OcrCheckPage() {
 
   // Effect for fetching image dimensions (remote mode)
   useEffect(() => {
-    if (!isLocalMode) {
+    if (!isLocalMode && enableRemote) { // Only fetch in remote mode when it's enabled
       const fetchImageDimensions = async () => {
         console.log("Fetching image dimensions for: ", imageName);
         if (imageName) {
@@ -376,7 +380,7 @@ export default function OcrCheckPage() {
       };
       fetchImageDimensions();
     }
-  }, [isLocalMode, imageName, currentImageIndex, fileNames]);
+  }, [isLocalMode, imageName, currentImageIndex, fileNames, enableRemote]);
 
   useEffect(() => {
     if (ocrData) {
@@ -586,12 +590,15 @@ export default function OcrCheckPage() {
             导入 JSON ZIP
           </label>
 
-          <button
-            className={`py-2 px-4 rounded font-bold ${isLocalMode ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-800'}`}
-            onClick={() => setIsLocalMode(!isLocalMode)}
-          >
-            {isLocalMode ? '本地模式' : '远程模式'}
-          </button>
+          {/* Only show mode toggle button when remote mode is enabled via URL parameter */}
+          {enableRemote && (
+            <button
+              className={`py-2 px-4 rounded font-bold ${isLocalMode ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-800'}`}
+              onClick={() => setIsLocalMode(!isLocalMode)}
+            >
+              {isLocalMode ? '本地模式' : '远程模式'}
+            </button>
+          )}
 
           <button
             onClick={handlePrevious}
@@ -650,8 +657,8 @@ export default function OcrCheckPage() {
                 a.click();
                 document.body.removeChild(a);
                 alert('OCR data downloaded successfully!');
-              } else {
-                // Original remote save logic
+              } else if (enableRemote) {
+                // Original remote save logic - only execute when remote mode is enabled
                 try {
                   const response = await fetch('/api/save-ocr', {
                     method: 'POST',
@@ -669,6 +676,9 @@ export default function OcrCheckPage() {
                   console.error('Error saving OCR data:', error);
                   alert('Error saving OCR data.');
                 }
+              } else {
+                // Remote mode is disabled
+                alert('远程模式未启用，无法保存到服务器。');
               }
             }}
           >
@@ -687,8 +697,12 @@ export default function OcrCheckPage() {
                   setOcrData([]);
                   setInitialOcrData([]);
                 }
-              } else {
+              } else if (enableRemote) {
+                // Only reset from remote data when remote mode is enabled
                 setOcrData(initialOcrData);
+              } else {
+                // Remote mode is disabled
+                alert('远程模式未启用，无法重置数据。');
               }
             }}
           >
