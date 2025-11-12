@@ -746,7 +746,7 @@ export default function OcrCheckPage() {
         {/* Left Pane: Image */}
         <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
           <div className="relative w-full h-auto" ref={imageContainerRef}> {/* This div will contain the image */}
-            {imageName && (
+            {imageName && (isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`) && (
               <Image
                 ref={imageRef}
                 src={isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`}
