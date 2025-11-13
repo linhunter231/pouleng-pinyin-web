@@ -73,6 +73,7 @@ export default function OcrCheckPage() {
 
   // 添加控制图上定位文本位置的状态
   const [overlayPosition, setOverlayPosition] = useState<'left' | 'right'>('right');
+  const [overlayOffset, setOverlayOffset] = useState<{ x: number; y: number }>({ x: 5, y: 5 });
 
   // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
   const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
@@ -82,6 +83,9 @@ export default function OcrCheckPage() {
     const leftEl = leftPaneRef.current;
     const rightEl = rightViewMode === 'raw' ? rightRawRef.current : rightViewMode === 'paragraph' ? rightParagraphRef.current : null;
     if (!leftEl || !rightEl) return;
+
+    // 初始同步一次滚动位置
+    rightEl.scrollTop = leftEl.scrollTop;
 
     const handleLeftScroll = () => {
       if (isSyncingScrollRef.current) return;
@@ -856,6 +860,52 @@ export default function OcrCheckPage() {
             }}
             onMouseLeave={() => setIsLocalZoomActive(false)}
           >
+            {/* 浮动偏移控制面板 - 仅当图上定位文本在左侧时显示 */}
+            {overlayPosition === 'left' && (
+              <div className="absolute top-2 left-2 bg-white bg-opacity-80 rounded-lg shadow-lg p-2 z-10 flex flex-col">
+                <div className="flex items-center justify-between mb-1">
+                  <button 
+                    className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={() => setOverlayOffset(prev => ({ ...prev, x: prev.x - 1 }))}
+                  >
+                    ←
+                  </button>
+                  <input 
+                    type="number" 
+                    value={overlayOffset.x} 
+                    onChange={(e) => setOverlayOffset(prev => ({ ...prev, x: parseInt(e.target.value) || 0 }))}
+                    className="w-12 text-center border border-gray-300 rounded mx-1 text-xs"
+                  />
+                  <button 
+                    className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={() => setOverlayOffset(prev => ({ ...prev, x: prev.x + 1 }))}
+                  >
+                    →
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <button 
+                    className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y - 1 }))}
+                  >
+                    ↑
+                  </button>
+                  <input 
+                    type="number" 
+                    value={overlayOffset.y} 
+                    onChange={(e) => setOverlayOffset(prev => ({ ...prev, y: parseInt(e.target.value) || 0 }))}
+                    className="w-12 text-center border border-gray-300 rounded mx-1 text-xs"
+                  />
+                  <button 
+                    className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y + 1 }))}
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {imageName && (isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`) && (
               <Image
                 ref={imageRef}
@@ -882,8 +932,8 @@ export default function OcrCheckPage() {
                   key={`wrapper-${index}`}
                   style={{
                     position: 'absolute',
-                    left: `${X * scaleX}px`,
-                    top: `${Y * scaleY}px`,
+                    left: `${X * scaleX + overlayOffset.x}px`,
+                    top: `${Y * scaleY - overlayOffset.y}px`,
                     width: `${Width * scaleX}px`,
                     height: `${Height * scaleY}px`,
                   }}
@@ -894,8 +944,8 @@ export default function OcrCheckPage() {
                       position: 'relative',
                       width: '100%',
                       height: '100%',
-                      border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.2)'}`, // Dynamic border color based on focusedElementIndex
-                      fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+                      border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.1)'}`, // Dynamic border color based on focusedElementIndex
+                      fontSize: '12px', // 当在左侧时使用更小的字体
                       overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
@@ -911,26 +961,26 @@ export default function OcrCheckPage() {
                         0.4
                       })`,
                     }}
-                  title={detection.DetectedText}
-                  contentEditable="true"
-                  suppressContentEditableWarning={true}
-                  onKeyDown={(e) => {
-                    // Shift+Enter: insert visual line break
-                    if (e.key === 'Enter' && e.shiftKey) {
-                      e.preventDefault();
-                      insertLineBreakAtCaret();
-                      return;
-                    }
-                    // Enter or Ctrl+Enter: exit edit (save on blur)
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      (e.currentTarget as HTMLElement).blur();
-                    }
-                  }}
-                  onFocus={(e) => {
-                    currentEditableInfo.current = { element: e.currentTarget, index };
-                    setFocusedElementIndex(index); // Set focused element index
-                  }}
+                    title={detection.DetectedText}
+                    contentEditable="true"
+                    suppressContentEditableWarning={true}
+                    onKeyDown={(e) => {
+                      // Shift+Enter: insert visual line break
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                      // Enter or Ctrl+Enter: exit edit (save on blur)
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).blur();
+                      }
+                    }}
+                    onFocus={(e) => {
+                      currentEditableInfo.current = { element: e.currentTarget, index };
+                      setFocusedElementIndex(index); // Set focused element index
+                    }}
                     onBlur={(e) => {
                       console.log("onBlur triggered. relatedTarget:", e.relatedTarget);
                       const isPinyinButtonFocused = pinyinButtonsRef.current && pinyinButtonsRef.current.contains(e.relatedTarget as Node);
@@ -956,117 +1006,114 @@ export default function OcrCheckPage() {
                   >
                     {detection.DetectedText}
                   </div>
-                   <span style={{
-                     position: 'absolute',
-                     top: '-15px', // Adjust this value to position it correctly above the box
-                     left: '-15px', // Adjust this value to position it correctly to the left of the box
-                     fontSize: '8px',
-                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                     padding: '2px 4px',
-                     borderRadius: '4px',
-                     zIndex: 5, // Keep below sticky toolbar
-                   }}
-                   contentEditable={true}
-                   suppressContentEditableWarning={true}
-                   title="页码 (ParagNo)"
-                   onKeyDown={(e) => {
-                     // Shift+Enter: insert visual line break
-                     if (e.key === 'Enter' && e.shiftKey) {
-                       e.preventDefault();
-                       insertLineBreakAtCaret();
-                       return;
-                     }
-                     // Enter or Ctrl+Enter: exit edit (save on blur)
-                     if (e.key === 'Enter') {
-                       e.preventDefault();
-                       (e.currentTarget as HTMLElement).blur();
-                     }
-                   }}
-                   onBlur={(e) => {
-                     const raw = (e.currentTarget.textContent || '').trim();
-                     const nextNo = Number(raw);
-                     if (Number.isNaN(nextNo)) {
-                       // If not a valid number, revert to current value
-                       e.currentTarget.textContent = String(
-                         (function() {
-                           try {
-                             return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
-                           } catch {
-                             return '';
-                           }
-                         })()
-                                   );
-                                       return;
-                                     }
-                                     setOcrData(prev => {
-                                       if (!prev) return null;
-                                       const next = [...prev];
-                                       const item = { ...next[index] } as any;
-                                       let adv: any = {};
-                                       try {
-                                         adv = JSON.parse(item.AdvancedInfo);
-                                       } catch (e) {
-                                         console.error("Error parsing AdvancedInfo:", e);
-                                       }
-                                       adv.Parag = { ...adv.Parag, ParagNo: nextNo };
-                                       item.AdvancedInfo = JSON.stringify(adv);
-                                       next[index] = item;
-                                       return next;
-                                     });
-                                   }}
-                                   >
-                                     {(function() {
-                                       try {
-                                         return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
-                                       } catch {
-                                         return '';
-                                       }
-                                     })()}
-                                   </span>
-                                   <span style={{
-                                     position: 'absolute',
-                                     top: '-15px', // Adjust this value to position it correctly above the box
-                                     right: '-15px', // Adjust this value to position it correctly to the right of the box
-                                     fontSize: '8px',
-                                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                     padding: '2px 4px',
-                                     borderRadius: '4px',
-                                     zIndex: 5, // Keep below sticky toolbar
-                                   }}
-                                   contentEditable={true}
-                                   suppressContentEditableWarning={true}
-                                   title="置信度 (Confidence)"
-                                   onKeyDown={(e) => {
-                                     if (e.key === 'Enter' && e.shiftKey) {
-                                       e.preventDefault();
-                                       insertLineBreakAtCaret();
-                                       return;
-                                     }
-                                     if (e.key === 'Enter') {
-                                       e.preventDefault();
-                                       (e.currentTarget as HTMLElement).blur();
-                                     }
-                                   }}
-                                   onBlur={(e) => {
-                                     const raw = (e.currentTarget.textContent || '').trim();
-                                     const nextVal = Number(raw);
-                                     if (Number.isNaN(nextVal)) {
-                                       e.currentTarget.textContent = String(detection.Confidence ?? '');
-                                       return;
-                                     }
-                                     setOcrData(prev => {
-                                       if (!prev) return null;
-                                       const next = [...prev];
-                                       next[index] = { ...next[index], Confidence: nextVal } as any;
-                                       return next;
-                                     });
-                                   }}
-                                   >
-                                     {detection.Confidence}
-                                   </span>
-                                </div>
-                              );
-                            })}
+                  <span style={{
+                    position: 'absolute',
+                    top: '-15px',
+                    left: '-15px',
+                    fontSize: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0)',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    zIndex: 5,
+                  }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    title="页码 (ParagNo)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).blur();
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const raw = (e.currentTarget.textContent || '').trim();
+                      const nextNo = Number(raw);
+                      if (Number.isNaN(nextNo)) {
+                        e.currentTarget.textContent = String(
+                          (function() {
+                            try {
+                              return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                            } catch {
+                              return '';
+                            }
+                          })()
+                        );
+                        return;
+                      }
+                      setOcrData(prev => {
+                        if (!prev) return null;
+                        const next = [...prev];
+                        const item = { ...next[index] } as any;
+                        let adv: any = {};
+                        try {
+                          adv = JSON.parse(item.AdvancedInfo);
+                        } catch (e) {
+                          console.error("Error parsing AdvancedInfo:", e);
+                        }
+                        adv.Parag = { ...adv.Parag, ParagNo: nextNo };
+                        item.AdvancedInfo = JSON.stringify(adv);
+                        next[index] = item;
+                        return next;
+                      });
+                    }}
+                    >
+                      {(function() {
+                        try {
+                          return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                        } catch {
+                          return '';
+                        }
+                      })()}
+                    </span>
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      right: '-15px',
+                      fontSize: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 5,
+                    }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    title="置信度 (Confidence)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).blur();
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const raw = (e.currentTarget.textContent || '').trim();
+                      const nextVal = Number(raw);
+                      if (Number.isNaN(nextVal)) {
+                        e.currentTarget.textContent = String(detection.Confidence ?? '');
+                        return;
+                      }
+                      setOcrData(prev => {
+                        if (!prev) return null;
+                        const next = [...prev];
+                        next[index] = { ...next[index], Confidence: nextVal } as any;
+                        return next;
+                      });
+                    }}
+                    >
+                      {detection.Confidence}
+                    </span>
+                  </div>
+                );
+              })}
             
             {/* Local zoom overlay */}
             {isLocalZoomActive && imageName && (
@@ -1171,26 +1218,26 @@ export default function OcrCheckPage() {
                           0.4
                         })`,
                       }}
-                    title={detection.DetectedText}
-                    contentEditable="true"
-                    suppressContentEditableWarning={true}
-                    onKeyDown={(e) => {
-                      // Shift+Enter: insert visual line break
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                      // Enter or Ctrl+Enter: exit edit (save on blur)
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).blur();
-                      }
-                    }}
-                    onFocus={(e) => {
-                      currentEditableInfo.current = { element: e.currentTarget, index };
-                      setFocusedElementIndex(index); // Set focused element index
-                    }}
+                      title={detection.DetectedText}
+                      contentEditable="true"
+                      suppressContentEditableWarning={true}
+                      onKeyDown={(e) => {
+                        // Shift+Enter: insert visual line break
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                        // Enter or Ctrl+Enter: exit edit (save on blur)
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLElement).blur();
+                        }
+                      }}
+                      onFocus={(e) => {
+                        currentEditableInfo.current = { element: e.currentTarget, index };
+                        setFocusedElementIndex(index); // Set focused element index
+                      }}
                       onBlur={(e) => {
                         console.log("onBlur triggered. relatedTarget:", e.relatedTarget);
                         const isPinyinButtonFocused = pinyinButtonsRef.current && pinyinButtonsRef.current.contains(e.relatedTarget as Node);
@@ -1216,6 +1263,111 @@ export default function OcrCheckPage() {
                     >
                       {detection.DetectedText}
                     </div>
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      left: '-15px',
+                      fontSize: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 5,
+                    }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    title="页码 (ParagNo)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).blur();
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const raw = (e.currentTarget.textContent || '').trim();
+                      const nextNo = Number(raw);
+                      if (Number.isNaN(nextNo)) {
+                        e.currentTarget.textContent = String(
+                          (function() {
+                            try {
+                              return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                            } catch {
+                              return '';
+                            }
+                          })()
+                        );
+                        return;
+                      }
+                      setOcrData(prev => {
+                        if (!prev) return null;
+                        const next = [...prev];
+                        const item = { ...next[index] } as any;
+                        let adv: any = {};
+                        try {
+                          adv = JSON.parse(item.AdvancedInfo);
+                        } catch (e) {
+                          console.error("Error parsing AdvancedInfo:", e);
+                        }
+                        adv.Parag = { ...adv.Parag, ParagNo: nextNo };
+                        item.AdvancedInfo = JSON.stringify(adv);
+                        next[index] = item;
+                        return next;
+                      });
+                    }}
+                    >
+                      {(function() {
+                        try {
+                          return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                        } catch {
+                          return '';
+                        }
+                      })()}
+                    </span>
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      right: '-15px',
+                      fontSize: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 5,
+                    }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    title="置信度 (Confidence)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).blur();
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const raw = (e.currentTarget.textContent || '').trim();
+                      const nextVal = Number(raw);
+                      if (Number.isNaN(nextVal)) {
+                        e.currentTarget.textContent = String(detection.Confidence ?? '');
+                        return;
+                      }
+                      setOcrData(prev => {
+                        if (!prev) return null;
+                        const next = [...prev];
+                        next[index] = { ...next[index], Confidence: nextVal } as any;
+                        return next;
+                      });
+                    }}
+                    >
+                      {detection.Confidence}
+                    </span>
                   </div>
                 );
               })}
@@ -1245,5 +1397,5 @@ export default function OcrCheckPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
