@@ -71,10 +71,13 @@ export default function OcrCheckPage() {
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [imageOffset, setImageOffset] = useState({ top: 0, left: 0 });
 
+  // 添加控制图上定位文本位置的状态
+  const [overlayPosition, setOverlayPosition] = useState<'left' | 'right'>('right');
+
   // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
   const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
 
-  // 同步左右两侧的滚动（在原始JSON/按段号模式下）
+  // 同步左右两侧的滚动（在原始JSON/按段号模式下)
   useEffect(() => {
     const leftEl = leftPaneRef.current;
     const rightEl = rightViewMode === 'raw' ? rightRawRef.current : rightViewMode === 'paragraph' ? rightParagraphRef.current : null;
@@ -117,7 +120,29 @@ export default function OcrCheckPage() {
     }
   };
 
-  // 段号聚合与排序：按 ParagNo 排序，再按 Y/X；拼接文本
+  // 处理键盘事件
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        // You can trigger save functionality here if needed
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // 当overlayPosition改变时，如果移到左侧，则右侧自动切换到原始JSON视图
+  useEffect(() => {
+    if (overlayPosition === 'left' && rightViewMode === 'overlay') {
+      setRightViewMode('raw');
+    }
+  }, [overlayPosition, rightViewMode]);
+
+  // 计算段落行
   const paragraphLines = useMemo(() => {
     if (!ocrData || ocrData.length === 0) return [] as { paragNo: number | null; text: string }[];
     const groups = new Map<number | null, OcrDetectionItem[]>();
@@ -797,13 +822,26 @@ export default function OcrCheckPage() {
             >
               按段号输出文本
             </button>
+            {/* 控制图上定位文本显示位置的按钮，始终显示 */}
+            <button
+              className="px-2 py-1 rounded bg-gray-200 text-gray-800"
+              onClick={() => {
+                // 切换图上定位文本位置时，如果当前不是overlay模式，则切换到overlay模式
+                if (rightViewMode !== 'overlay') {
+                  setRightViewMode('overlay');
+                }
+                setOverlayPosition(overlayPosition === 'left' ? 'right' : 'left');
+              }}
+            >
+              {overlayPosition === 'left' ? '移到右侧' : '移到左侧'}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Two panes below toolbar */}
       <div className="flex flex-grow">
-        {/* Left Pane: Image */}
+        {/* Left Pane: Image with OCR overlay */}
         <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
           <div 
             className="relative w-full h-auto" 
@@ -833,92 +871,11 @@ export default function OcrCheckPage() {
               />
             )}
             
-            {/* Local zoom overlay */}
-            {isLocalZoomActive && imageName && (
-              <div 
-                className="absolute pointer-events-none"
-                style={{
-                  width: '200px',
-                  height: '200px',
-                  border: '2px solid white',
-                  borderRadius: '8px',
-                  boxShadow: '0 0 15px rgba(0, 0, 0, 0.8)',
-                  top: `${zoomPosition.y - 100}px`,
-                  left: `${zoomPosition.x - 100}px`,
-                  transform: 'translate(0, 0)',
-                  zIndex: 20,
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    width: '1000px',
-                    height: '1500px',
-                    backgroundImage: `url(${isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`})`,
-                    backgroundSize: '1000px 1500px',
-                    backgroundPosition: `-${zoomPosition.x * 5 - 100}px -${zoomPosition.y * 5 - 100}px`,
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Image Zoom Modal */}
-        {isImageZoomed && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center p-4" onClick={handleCloseZoom}>
-            <div className="relative max-w-6xl max-h-[90vh]">
-              <button 
-                className="absolute top-2 right-2 bg-white rounded-full p-2 z-10 shadow-lg hover:bg-gray-200"
-                onClick={handleCloseZoom}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="overflow-auto max-h-[90vh]">
-                <img 
-                  src={zoomedImageSrc} 
-                  alt="Zoomed OCR Image" 
-                  className="max-w-full max-h-full object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Right Pane: OCR Detected Text on Image */}
-        <div className="p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0">
-          {rightViewMode === 'overlay' && (
-            <div
-              className="relative border border-gray-300 overflow-y-auto"
-              style={imageRenderedDimensions ? {
-                  height: `${imageRenderedDimensions.containerHeight}px`,
-                } : {}}
-            >
-            {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
+            {/* OCR Overlay on image - 当位置为左侧时显示在图片上 */}
+            {overlayPosition === 'left' && ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
               const { X, Y, Width, Height } = detection.ItemPolygon;
-              const { naturalWidth, naturalHeight, width: renderedWidth, height: renderedHeight } = imageRenderedDimensions;
-
               const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
               const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
-              const style: React.CSSProperties = {
-                position: 'absolute',
-                left: `${X * scaleX}px`,
-                top: `${Y * scaleY}px`,
-                width: `${Width * scaleX}px`,
-                height: `${Height * scaleY}px`,
-                border: '1px solid rgba(0, 123, 255, 0.2)',
-                fontSize: `${Math.max(12, 16 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                textAlign: 'left',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                boxSizing: 'border-box',
-              };
 
               return (
                 <div
@@ -1110,29 +1067,183 @@ export default function OcrCheckPage() {
                                 </div>
                               );
                             })}
-                          </div>
-          )}
-            {rightViewMode === 'raw' && (
-              <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightRawRef}
-                   style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
-                <pre className="font-mono text-xs whitespace-pre-wrap break-words">{JSON.stringify(ocrData ?? [], null, 2)}</pre>
+            
+            {/* Local zoom overlay */}
+            {isLocalZoomActive && imageName && (
+              <div 
+                className="absolute pointer-events-none"
+                style={{
+                  width: '200px',
+                  height: '200px',
+                  border: '2px solid white',
+                  borderRadius: '8px',
+                  boxShadow: '0 0 15px rgba(0, 0, 0, 0.8)',
+                  top: `${zoomPosition.y - 100}px`,
+                  left: `${zoomPosition.x - 100}px`,
+                  transform: 'translate(0, 0)',
+                  zIndex: 20,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: '1000px',
+                    height: '1500px',
+                    backgroundImage: `url(${isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`})`,
+                    backgroundSize: '1000px 1500px',
+                    backgroundPosition: `-${zoomPosition.x * 5 - 100}px -${zoomPosition.y * 5 - 100}px`,
+                  }}
+                />
               </div>
             )}
-            {rightViewMode === 'paragraph' && (
-              <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightParagraphRef}
-                   style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
-                <ol className="list-decimal pl-4 space-y-1 text-sm">
-                  {paragraphLines.map((line, idx) => (
-                    <li key={`parag-${line.paragNo ?? 'none'}-${idx}`}>
-                      <span className="text-gray-500 mr-2">{line.paragNo ?? '—'}</span>
-                      <span>{line.text}</span>
-                    </li>
-                  ))}
-                </ol>
+          </div>
+        </div>
+
+        {/* Image Zoom Modal */}
+        {isImageZoomed && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center p-4" onClick={handleCloseZoom}>
+            <div className="relative max-w-6xl max-h-[90vh]">
+              <button 
+                className="absolute top-2 right-2 bg-white rounded-full p-2 z-10 shadow-lg hover:bg-gray-200"
+                onClick={handleCloseZoom}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="overflow-auto max-h-[90vh]">
+                <img 
+                  src={zoomedImageSrc} 
+                  alt="Zoomed OCR Image" 
+                  className="max-w-full max-h-full object-contain"
+                />
               </div>
-            )}
-                        </div>
-                      </div>
+            </div>
+          </div>
+        )}
+
+        {/* Right Pane: OCR data in different views (raw JSON, paragraph) or overlay on right */}
+        <div className="p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0">
+          {/* 当位置为右侧且视图为overlay时，图上定位文本显示在右侧窗格中 */}
+          {overlayPosition === 'right' && rightViewMode === 'overlay' && (
+            <div
+              className="relative border border-gray-300 overflow-y-auto"
+              style={imageRenderedDimensions ? {
+                  height: `${imageRenderedDimensions.containerHeight}px`,
+                } : {}}
+            >
+              {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
+                const { X, Y, Width, Height } = detection.ItemPolygon;
+                const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
+                const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
+
+                return (
+                  <div
+                    key={`wrapper-${index}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${X * scaleX}px`,
+                      top: `${Y * scaleY}px`,
+                      width: `${Width * scaleX}px`,
+                      height: `${Height * scaleY}px`,
+                    }}
+                  >
+                    <div
+                      key={index}
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.2)'}`, // Dynamic border color based on focusedElementIndex
+                        fontSize: `${Math.max(8, 125 * Math.min(scaleX, scaleY))}px`, // Scale font size, with a minimum of 12px
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        textAlign: 'left',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        boxSizing: 'border-box',
+                        color: `rgba(0, 0, 0, ${
+                          detection.Confidence === 100 ? 1 :
+                          detection.Confidence === 99 ? 0.9 :
+                          detection.Confidence === 98 ? 0.7 :
+                          0.4
+                        })`,
+                      }}
+                    title={detection.DetectedText}
+                    contentEditable="true"
+                    suppressContentEditableWarning={true}
+                    onKeyDown={(e) => {
+                      // Shift+Enter: insert visual line break
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                      // Enter or Ctrl+Enter: exit edit (save on blur)
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).blur();
+                      }
+                    }}
+                    onFocus={(e) => {
+                      currentEditableInfo.current = { element: e.currentTarget, index };
+                      setFocusedElementIndex(index); // Set focused element index
+                    }}
+                      onBlur={(e) => {
+                        console.log("onBlur triggered. relatedTarget:", e.relatedTarget);
+                        const isPinyinButtonFocused = pinyinButtonsRef.current && pinyinButtonsRef.current.contains(e.relatedTarget as Node);
+                        console.log("isPinyinButtonFocused:", isPinyinButtonFocused);
+
+                        // Check if the new focused element is within the pinyin buttons container
+                        if (isPinyinButtonFocused) {
+                          // If a pinyin button was clicked, do not clear currentEditableInfo and keep focusedElementIndex
+                          return;
+                        }
+
+                        setFocusedElementIndex(null); // Clear focused element index
+                        const newText = e.currentTarget.textContent || '';
+                        setOcrData(prevOcrData => {
+                          if (!prevOcrData) return null;
+                          const newOcrData = [...prevOcrData];
+                          newOcrData[index] = { ...newOcrData[index], DetectedText: newText };
+                          return newOcrData;
+                        });
+                        console.log(`Edited text for item ${index}:`, newText);
+                        currentEditableInfo.current = null;
+                      }}
+                    >
+                      {detection.DetectedText}
                     </div>
-                  );
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* 原始JSON视图 */}
+          {rightViewMode === 'raw' && (
+            <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightRawRef}
+                 style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
+              <pre className="font-mono text-xs whitespace-pre-wrap break-words">{JSON.stringify(ocrData ?? [], null, 2)}</pre>
+            </div>
+          )}
+          {/* 按段号输出文本视图 */}
+          {rightViewMode === 'paragraph' && (
+            <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightParagraphRef}
+                 style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
+              <ol className="list-decimal pl-4 space-y-1 text-sm">
+                {paragraphLines.map((line, idx) => (
+                  <li key={`parag-${line.paragNo ?? 'none'}-${idx}`}>
+                    <span className="text-gray-500 mr-2">{line.paragNo ?? '—'}</span>
+                    <span>{line.text}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
