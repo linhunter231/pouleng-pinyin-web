@@ -62,6 +62,15 @@ export default function OcrCheckPage() {
   const [editedLocalJsonData, setEditedLocalJsonData] = useState<Record<string, any>>({});
   const [isLocalMode, setIsLocalMode] = useState<boolean>(!enableRemote); // Set initial mode based on URL parameter
 
+  // Image zoom states
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [zoomedImageSrc, setZoomedImageSrc] = useState<string>('');
+  
+  // Local zoom states
+  const [isLocalZoomActive, setIsLocalZoomActive] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [imageOffset, setImageOffset] = useState({ top: 0, left: 0 });
+
   // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
   const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
 
@@ -424,6 +433,33 @@ export default function OcrCheckPage() {
     }
   };
 
+  // Function to handle image zoom
+  const handleZoomImage = () => {
+    if (imageName) {
+      const src = isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`;
+      if (src) {
+        setZoomedImageSrc(src);
+        setIsImageZoomed(true);
+      }
+    }
+  };
+
+  // Function to close zoomed image
+  const handleCloseZoom = () => {
+    setIsImageZoomed(false);
+    setZoomedImageSrc('');
+  };
+  
+  // Function to handle local zoom
+  const handleLocalZoom = () => {
+    setIsLocalZoomActive(true);
+  };
+  
+  // Function to hide local zoom
+  const handleHideLocalZoom = () => {
+    setIsLocalZoomActive(false);
+  };
+
   // Re-instate handleResize effect to update image dimensions on window resize
   useEffect(() => {
     const handleResize = () => {
@@ -630,6 +666,16 @@ export default function OcrCheckPage() {
 
         {/* Right controls */}
         <div className="flex items-center space-x-2">
+          {/* Add zoom image button */}
+          {imageName && (
+            <button
+              className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded ${isLocalZoomActive ? 'ring-2 ring-yellow-300' : ''}`}
+              onClick={() => setIsLocalZoomActive(!isLocalZoomActive)}
+            >
+              {isLocalZoomActive ? '关闭局部放大' : '开启局部放大'}
+            </button>
+          )}
+          
           <button
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={async () => {
@@ -759,7 +805,19 @@ export default function OcrCheckPage() {
       <div className="flex flex-grow">
         {/* Left Pane: Image */}
         <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
-          <div className="relative w-full h-auto" ref={imageContainerRef}> {/* This div will contain the image */}
+          <div 
+            className="relative w-full h-auto" 
+            ref={imageContainerRef}
+            onMouseMove={(e) => {
+              if (isLocalZoomActive && imageContainerRef.current) {
+                const rect = imageContainerRef.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                setZoomPosition({ x, y });
+              }
+            }}
+            onMouseLeave={() => setIsLocalZoomActive(false)}
+          >
             {imageName && (isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`) && (
               <Image
                 ref={imageRef}
@@ -774,8 +832,60 @@ export default function OcrCheckPage() {
                 unoptimized={isLocalMode} // Disable Next.js Image optimization for local Blob URLs
               />
             )}
+            
+            {/* Local zoom overlay */}
+            {isLocalZoomActive && imageName && (
+              <div 
+                className="absolute pointer-events-none"
+                style={{
+                  width: '200px',
+                  height: '200px',
+                  border: '2px solid white',
+                  borderRadius: '8px',
+                  boxShadow: '0 0 15px rgba(0, 0, 0, 0.8)',
+                  top: `${zoomPosition.y - 100}px`,
+                  left: `${zoomPosition.x - 100}px`,
+                  transform: 'translate(0, 0)',
+                  zIndex: 20,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: '1000px',
+                    height: '1500px',
+                    backgroundImage: `url(${isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`})`,
+                    backgroundSize: '1000px 1500px',
+                    backgroundPosition: `-${zoomPosition.x * 5 - 100}px -${zoomPosition.y * 5 - 100}px`,
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Image Zoom Modal */}
+        {isImageZoomed && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center p-4" onClick={handleCloseZoom}>
+            <div className="relative max-w-6xl max-h-[90vh]">
+              <button 
+                className="absolute top-2 right-2 bg-white rounded-full p-2 z-10 shadow-lg hover:bg-gray-200"
+                onClick={handleCloseZoom}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="overflow-auto max-h-[90vh]">
+                <img 
+                  src={zoomedImageSrc} 
+                  alt="Zoomed OCR Image" 
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Right Pane: OCR Detected Text on Image */}
         <div className="p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0">
