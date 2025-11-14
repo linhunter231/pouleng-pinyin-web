@@ -74,6 +74,9 @@ export default function OcrCheckPage() {
   // 添加控制图上定位文本位置的状态
   const [overlayPosition, setOverlayPosition] = useState<'left' | 'right'>('right');
   const [overlayOffset, setOverlayOffset] = useState<{ x: number; y: number }>({ x: 5, y: 5 });
+  
+  // 添加控制左侧图片是否放大的状态
+  const [isLeftImageExpanded, setIsLeftImageExpanded] = useState(false);
 
   // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
   const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
@@ -501,6 +504,17 @@ export default function OcrCheckPage() {
     };
   }, [imageRenderedDimensions]); // Depend on imageRenderedDimensions to re-run when it changes
 
+  // 监听左侧图片放大状态变化，更新图片尺寸
+  useEffect(() => {
+    if (isLeftImageExpanded || !isLeftImageExpanded) {
+      // 状态变化后稍微延迟一下再更新尺寸，确保布局已经完成
+      const timer = setTimeout(() => {
+        handleImageLoad();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLeftImageExpanded]);
+
   const handlePrevious = () => {
     setCurrentImageIndex(prevIndex => Math.max(0, prevIndex - 1));
   };
@@ -839,6 +853,16 @@ export default function OcrCheckPage() {
             >
               {overlayPosition === 'left' ? '移到右侧' : '移到左侧'}
             </button>
+            
+            {/* 控制左侧图片放大/缩小的按钮，仅当图上定位文本在左侧时显示 */}
+            {overlayPosition === 'left' && (
+              <button
+                className="px-2 py-1 rounded bg-gray-200 text-gray-800"
+                onClick={() => setIsLeftImageExpanded(!isLeftImageExpanded)}
+              >
+                {isLeftImageExpanded ? '缩小图片' : '放大图片'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -846,7 +870,11 @@ export default function OcrCheckPage() {
       {/* Two panes below toolbar */}
       <div className="flex flex-grow">
         {/* Left Pane: Image with OCR overlay */}
-        <div className="p-4 border-r border-gray-300 overflow-auto flex-grow basis-0" ref={leftPaneRef}>
+        <div 
+          className={`p-4 border-r border-gray-300 overflow-auto ${isLeftImageExpanded ? 'flex-grow basis-0' : 'flex-grow basis-0'}`} 
+          ref={leftPaneRef}
+          style={isLeftImageExpanded ? { flex: '0 0 100%' } : {}}
+        >
           <div 
             className="relative w-full h-auto" 
             ref={imageContainerRef}
@@ -924,145 +952,131 @@ export default function OcrCheckPage() {
             {/* OCR Overlay on image - 当位置为左侧时显示在图片上 */}
             {overlayPosition === 'left' && ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
               const { X, Y, Width, Height } = detection.ItemPolygon;
-              const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
-              const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
+              // 只有在左侧且图片放大时才应用放大逻辑
+              if (isLeftImageExpanded) {
+                // 计算实际的缩放因子 - 基于图片实际显示尺寸的变化
+                // 获取图片在正常状态和放大状态下的尺寸
+                const normalScaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
+                const normalScaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
+                
+                // 直接使用实际测量的缩放因子，不再乘以额外系数
+                const scaleX = normalScaleX;
+                const scaleY = normalScaleY;
+                
+                // 偏移量也应根据放大状态调整
+                const offsetX = overlayOffset.x;
+                const offsetY = overlayOffset.y;
 
-              return (
-                <div
-                  key={`wrapper-${index}`}
-                  style={{
-                    position: 'absolute',
-                    left: `${X * scaleX + overlayOffset.x}px`,
-                    top: `${Y * scaleY - overlayOffset.y}px`,
-                    width: `${Width * scaleX}px`,
-                    height: `${Height * scaleY}px`,
-                  }}
-                >
+                return (
                   <div
-                    key={index}
+                    key={`wrapper-${index}`}
                     style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: '100%',
-                      border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.1)'}`, // Dynamic border color based on focusedElementIndex
-                      fontSize: '12px', // 当在左侧时使用更小的字体
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      boxSizing: 'border-box',
-                      color: `rgba(0, 0, 0, ${
-                        detection.Confidence === 100 ? 1 :
-                        detection.Confidence === 99 ? 0.9 :
-                        detection.Confidence === 98 ? 0.7 :
-                        0.4
-                      })`,
-                    }}
-                    title={detection.DetectedText}
-                    contentEditable="true"
-                    suppressContentEditableWarning={true}
-                    onKeyDown={(e) => {
-                      // Shift+Enter: insert visual line break
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                      // Enter or Ctrl+Enter: exit edit (save on blur)
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).blur();
-                      }
-                    }}
-                    onFocus={(e) => {
-                      currentEditableInfo.current = { element: e.currentTarget, index };
-                      setFocusedElementIndex(index); // Set focused element index
-                    }}
-                    onBlur={(e) => {
-                      console.log("onBlur triggered. relatedTarget:", e.relatedTarget);
-                      const isPinyinButtonFocused = pinyinButtonsRef.current && pinyinButtonsRef.current.contains(e.relatedTarget as Node);
-                      console.log("isPinyinButtonFocused:", isPinyinButtonFocused);
-
-                      // Check if the new focused element is within the pinyin buttons container
-                      if (isPinyinButtonFocused) {
-                        // If a pinyin button was clicked, do not clear currentEditableInfo and keep focusedElementIndex
-                        return;
-                      }
-
-                      setFocusedElementIndex(null); // Clear focused element index
-                      const newText = e.currentTarget.textContent || '';
-                      setOcrData(prevOcrData => {
-                        if (!prevOcrData) return null;
-                        const newOcrData = [...prevOcrData];
-                        newOcrData[index] = { ...newOcrData[index], DetectedText: newText };
-                        return newOcrData;
-                      });
-                      console.log(`Edited text for item ${index}:`, newText);
-                      currentEditableInfo.current = null;
+                      position: 'absolute',
+                      left: `${X * scaleX + offsetX}px`,
+                      top: `${Y * scaleY - offsetY}px`,
+                      width: `${Width * scaleX}px`,
+                      height: `${Height * scaleY}px`,
                     }}
                   >
-                    {detection.DetectedText}
-                  </div>
-                  <span style={{
-                    position: 'absolute',
-                    top: '-15px',
-                    left: '-15px',
-                    fontSize: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0)',
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    zIndex: 5,
-                  }}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    title="页码 (ParagNo)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).blur();
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const raw = (e.currentTarget.textContent || '').trim();
-                      const nextNo = Number(raw);
-                      if (Number.isNaN(nextNo)) {
-                        e.currentTarget.textContent = String(
-                          (function() {
-                            try {
-                              return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
-                            } catch {
-                              return '';
-                            }
-                          })()
-                        );
-                        return;
-                      }
-                      setOcrData(prev => {
-                        if (!prev) return null;
-                        const next = [...prev];
-                        const item = { ...next[index] } as any;
-                        let adv: any = {};
-                        try {
-                          adv = JSON.parse(item.AdvancedInfo);
-                        } catch (e) {
-                          console.error("Error parsing AdvancedInfo:", e);
+                    <div
+                      key={index}
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.1)'}`, // Dynamic border color based on focusedElementIndex
+                        fontSize: '22px', // 放大时使用更大的字体
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        textAlign: 'left',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        boxSizing: 'border-box',
+                        color: `rgba(0, 0, 0, ${
+                          detection.Confidence === 100 ? 1 :
+                          detection.Confidence === 99 ? 0.9 :
+                          detection.Confidence === 98 ? 0.7 :
+                          0.4
+                        })`,
+                      }}
+                      title={detection.DetectedText}
+                      contentEditable="true"
+                      suppressContentEditableWarning={true}
+                      onKeyDown={(e) => {
+                        // Shift+Enter: insert visual line break
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
                         }
-                        adv.Parag = { ...adv.Parag, ParagNo: nextNo };
-                        item.AdvancedInfo = JSON.stringify(adv);
-                        next[index] = item;
-                        return next;
-                      });
-                    }}
+                        // Enter: move focus to next editable element
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const nextIndex = (index + 1) % ocrData.length;
+                          setFocusedElementIndex(nextIndex);
+                          setTimeout(() => {
+                            const nextElement = document.querySelector(`[data-ocr-index="${nextIndex}"]`) as HTMLElement | null;
+                            if (nextElement) {
+                              nextElement.focus();
+                              const range = document.createRange();
+                              const sel = window.getSelection();
+                              range.selectNodeContents(nextElement);
+                              range.collapse(false);
+                              sel?.removeAllRanges();
+                              sel?.addRange(range);
+                            }
+                          }, 0);
+                        }
+                      }}
+                      onFocus={(e) => {
+                        setFocusedElementIndex(index);
+                        currentEditableInfo.current = { element: e.currentTarget, index };
+                      }}
+                      onBlur={(e) => {
+                        // Save the caret position when blurring
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                          const range = selection.getRangeAt(0);
+                          const preCaretRange = range.cloneRange();
+                          preCaretRange.selectNodeContents(e.currentTarget);
+                          preCaretRange.setEnd(range.endContainer, range.endOffset);
+                          currentEditableInfo.current = { 
+                            element: e.currentTarget, 
+                            index, 
+                            caretOffset: preCaretRange.toString().length 
+                          };
+                        }
+                      }}
+                      data-ocr-index={index}
                     >
-                      {(function() {
+                      {detection.DetectedText}
+                    </div>
+                    
+                    {/* ParagNo 显示在左上角，仅在左侧模式下显示 */}
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      left: '-15px',
+                      fontSize: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 5,
+                    }}
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      title="页码 (ParagNo)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                      }}
+                    >
+                      {(() => {
                         try {
                           return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
                         } catch {
@@ -1070,6 +1084,8 @@ export default function OcrCheckPage() {
                         }
                       })()}
                     </span>
+                    
+                    {/* Confidence 显示在右上角，仅在左侧模式下显示 */}
                     <span style={{
                       position: 'absolute',
                       top: '-15px',
@@ -1089,31 +1105,163 @@ export default function OcrCheckPage() {
                         insertLineBreakAtCaret();
                         return;
                       }
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).blur();
-                      }
                     }}
-                    onBlur={(e) => {
-                      const raw = (e.currentTarget.textContent || '').trim();
-                      const nextVal = Number(raw);
-                      if (Number.isNaN(nextVal)) {
-                        e.currentTarget.textContent = String(detection.Confidence ?? '');
-                        return;
-                      }
-                      setOcrData(prev => {
-                        if (!prev) return null;
-                        const next = [...prev];
-                        next[index] = { ...next[index], Confidence: nextVal } as any;
-                        return next;
-                      });
-                    }}
-                    >
-                      {detection.Confidence}
-                    </span>
+                  >
+                    {detection.Confidence}
+                  </span>
                   </div>
                 );
-              })}
+              } else {
+                // 正常大小时使用原有逻辑
+                const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
+                const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
+                
+                return (
+                  <div
+                    key={`wrapper-${index}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${X * scaleX + overlayOffset.x}px`,
+                      top: `${Y * scaleY - overlayOffset.y}px`,
+                      width: `${Width * scaleX}px`,
+                      height: `${Height * scaleY}px`,
+                    }}
+                  >
+                    <div
+                      key={index}
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        border: `1px solid ${focusedElementIndex === index ? 'blue' : 'rgba(0, 123, 255, 0.1)'}`, // Dynamic border color based on focusedElementIndex
+                        fontSize: '12px', // 当在左侧时使用更小的字体
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        textAlign: 'left',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        boxSizing: 'border-box',
+                        color: `rgba(0, 0, 0, ${
+                          detection.Confidence === 100 ? 1 :
+                          detection.Confidence === 99 ? 0.9 :
+                          detection.Confidence === 98 ? 0.7 :
+                          0.4
+                        })`,
+                      }}
+                      title={detection.DetectedText}
+                      contentEditable="true"
+                      suppressContentEditableWarning={true}
+                      onKeyDown={(e) => {
+                        // Shift+Enter: insert visual line break
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                        // Enter: move focus to next editable element
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const nextIndex = (index + 1) % ocrData.length;
+                          setFocusedElementIndex(nextIndex);
+                          setTimeout(() => {
+                            const nextElement = document.querySelector(`[data-ocr-index="${nextIndex}"]`) as HTMLElement | null;
+                            if (nextElement) {
+                              nextElement.focus();
+                              const range = document.createRange();
+                              const sel = window.getSelection();
+                              range.selectNodeContents(nextElement);
+                              range.collapse(false);
+                              sel?.removeAllRanges();
+                              sel?.addRange(range);
+                            }
+                          }, 0);
+                        }
+                      }}
+                      onFocus={(e) => {
+                        setFocusedElementIndex(index);
+                        currentEditableInfo.current = { element: e.currentTarget, index };
+                      }}
+                      onBlur={(e) => {
+                        // Save the caret position when blurring
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                          const range = selection.getRangeAt(0);
+                          const preCaretRange = range.cloneRange();
+                          preCaretRange.selectNodeContents(e.currentTarget);
+                          preCaretRange.setEnd(range.endContainer, range.endOffset);
+                          currentEditableInfo.current = { 
+                            element: e.currentTarget, 
+                            index, 
+                            caretOffset: preCaretRange.toString().length 
+                          };
+                        }
+                      }}
+                      data-ocr-index={index}
+                    >
+                      {detection.DetectedText}
+                    </div>
+                    
+                    {/* ParagNo 显示在左上角，仅在左侧模式下显示 */}
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      left: '-15px',
+                      fontSize: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 5,
+                    }}
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      title="页码 (ParagNo)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                      }}
+                    >
+                      {(() => {
+                        try {
+                          return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                        } catch {
+                          return '';
+                        }
+                      })()}
+                    </span>
+                    
+                    {/* Confidence 显示在右上角，仅在左侧模式下显示 */}
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      right: '-15px',
+                      fontSize: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 5,
+                    }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    title="置信度 (Confidence)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        insertLineBreakAtCaret();
+                        return;
+                      }
+                    }}
+                  >
+                    {detection.Confidence}
+                  </span>
+                  </div>
+                );
+              }
+            })}
             
             {/* Local zoom overlay */}
             {isLocalZoomActive && imageName && (
@@ -1170,7 +1318,9 @@ export default function OcrCheckPage() {
         )}
 
         {/* Right Pane: OCR data in different views (raw JSON, paragraph) or overlay on right */}
-        <div className="p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0">
+        <div 
+          className={`p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0 ${isLeftImageExpanded ? 'hidden' : ''}`}
+        >
           {/* 当位置为右侧且视图为overlay时，图上定位文本显示在右侧窗格中 */}
           {overlayPosition === 'right' && rightViewMode === 'overlay' && (
             <div
