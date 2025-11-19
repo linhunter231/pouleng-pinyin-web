@@ -914,7 +914,7 @@ export default function OcrCheckPage() {
                 <div className="flex items-center justify-between">
                   <button 
                     className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
-                    onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y - 1 }))}
+                    onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y + 1 }))}
                   >
                     ↑
                   </button>
@@ -926,7 +926,7 @@ export default function OcrCheckPage() {
                   />
                   <button 
                     className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
-                    onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y + 1 }))}
+                    onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y - 1 }))}
                   >
                     ↓
                   </button>

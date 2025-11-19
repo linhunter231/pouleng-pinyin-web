@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from 'next/script';
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "莆仙话拼音查询",
@@ -20,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-        <body className={inter.className}>
+        <body>
           {children}
           <Script async src="https://www.googletagmanager.com/gtag/js?id=G-Z7CMHP0JWN" />
           <Script id="google-analytics" strategy="afterInteractive">
