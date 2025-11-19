@@ -22,7 +22,7 @@ type OcrResult = OcrDetectionItem[];
 export default function OcrCheckPage() {
   const searchParams = useSearchParams();
   const enableRemote = searchParams.get('remote') === 'true'; // Check if remote mode is enabled via URL parameter
-  
+
   const [ocrData, setOcrData] = useState<OcrResult | null>(null);
   const [initialOcrData, setInitialOcrData] = useState<OcrResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,7 @@ export default function OcrCheckPage() {
   // Image zoom states
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [zoomedImageSrc, setZoomedImageSrc] = useState<string>('');
-  
+
   // Local zoom states
   const [isLocalZoomActive, setIsLocalZoomActive] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
@@ -74,7 +74,7 @@ export default function OcrCheckPage() {
   // 添加控制图上定位文本位置的状态
   const [overlayPosition, setOverlayPosition] = useState<'left' | 'right'>('right');
   const [overlayOffset, setOverlayOffset] = useState<{ x: number; y: number }>({ x: 5, y: 5 });
-  
+
   // 添加控制左侧图片是否放大的状态
   const [isLeftImageExpanded, setIsLeftImageExpanded] = useState(false);
 
@@ -216,37 +216,50 @@ export default function OcrCheckPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setImageZipFile(file);
     setIsLocalMode(true);
     setLoading(true);
     setError(null);
 
     try {
-      const zip = await JSZip.loadAsync(file);
-      const newImageUrls: Record<string, string> = {};
-      const newFileNames: string[] = [];
+      // 检查是单个图片文件还是ZIP文件
+      if (file.name.endsWith('.zip')) {
+        // 处理ZIP文件
+        setImageZipFile(file);
+        const zip = await JSZip.loadAsync(file);
+        const newImageUrls: Record<string, string> = {};
+        const newFileNames: string[] = [];
 
-      for (const relativePath in zip.files) {
-        const zipEntry = zip.files[relativePath];
-        if (!zipEntry.dir && (relativePath.endsWith('.png') || relativePath.endsWith('.jpg') || relativePath.endsWith('.jpeg'))) {
-          const blob = await zipEntry.async('blob');
-          const url = URL.createObjectURL(blob);
-          const fileName = relativePath.split('/').pop()?.split('.')[0]; // Get base name without extension
-          if (fileName) {
-            newImageUrls[fileName] = url;
-            newFileNames.push(fileName);
+        for (const relativePath in zip.files) {
+          const zipEntry = zip.files[relativePath];
+          if (!zipEntry.dir && (relativePath.endsWith('.png') || relativePath.endsWith('.jpg') || relativePath.endsWith('.jpeg'))) {
+            const blob = await zipEntry.async('blob');
+            const url = URL.createObjectURL(blob);
+            const fileName = relativePath.split('/').pop()?.split('.')[0];
+            if (fileName) {
+              newImageUrls[fileName] = url;
+              newFileNames.push(fileName);
+            }
           }
         }
+        setLocalImageUrls(newImageUrls);
+        if (Object.keys(localJsonData).length === 0) {
+          setFileNames(newFileNames.sort());
+        }
+        console.log("已加载ZIP中的图片:", newImageUrls);
+      } else {
+        // 处理单个图片文件
+        const url = URL.createObjectURL(file);
+        const fileName = file.name.replace(/\.[^/.]+$/, "");
+        setLocalImageUrls(prev => ({ ...prev, [fileName]: url }));
+        setFileNames(prev => {
+          const newNames = prev.includes(fileName) ? prev : [...prev, fileName];
+          return newNames.sort();
+        });
+        console.log("已加载单个图片:", fileName);
       }
-      setLocalImageUrls(newImageUrls);
-      // Only set fileNames if JSON is not yet loaded, or if this is the primary source
-      if (Object.keys(localJsonData).length === 0) {
-        setFileNames(newFileNames.sort());
-      }
-      console.log("Loaded local image URLs:", newImageUrls);
     } catch (e: any) {
-      console.error("Error loading image zip:", e);
-      setError(`Error loading image zip: ${e.message}`);
+      console.error("加载图片文件出错:", e);
+      setError(`加载图片文件出错: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -256,38 +269,53 @@ export default function OcrCheckPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setJsonZipFile(file);
     setIsLocalMode(true);
     setLoading(true);
     setError(null);
 
     try {
-      const zip = await JSZip.loadAsync(file);
-      const newJsonData: Record<string, any> = {};
-      const newFileNames: string[] = [];
+      // 检查是单个JSON文件还是ZIP文件
+      if (file.name.endsWith('.zip')) {
+        // 处理ZIP文件
+        setJsonZipFile(file);
+        const zip = await JSZip.loadAsync(file);
+        const newJsonData: Record<string, any> = {};
+        const newFileNames: string[] = [];
 
-      for (const relativePath in zip.files) {
-        const zipEntry = zip.files[relativePath];
-        if (!zipEntry.dir && relativePath.endsWith('.json')) {
-          const text = await zipEntry.async('string');
-          const jsonData = JSON.parse(text);
-          const fileName = relativePath.split('/').pop()?.split('.')[0]; // Get base name without extension
-          if (fileName) {
-            newJsonData[fileName] = jsonData;
-            newFileNames.push(fileName);
+        for (const relativePath in zip.files) {
+          const zipEntry = zip.files[relativePath];
+          if (!zipEntry.dir && relativePath.endsWith('.json')) {
+            const text = await zipEntry.async('string');
+            const jsonData = JSON.parse(text);
+            const fileName = relativePath.split('/').pop()?.split('.')[0];
+            if (fileName) {
+              newJsonData[fileName] = jsonData;
+              newFileNames.push(fileName);
+            }
           }
         }
+        setLocalJsonData(newJsonData);
+        setEditedLocalJsonData(newJsonData);
+        if (Object.keys(localImageUrls).length === 0) {
+          setFileNames(newFileNames.sort());
+        }
+        console.log("已加载ZIP中的JSON:", newJsonData);
+      } else {
+        // 处理单个JSON文件
+        const text = await file.text();
+        const jsonData = JSON.parse(text);
+        const fileName = file.name.replace(/\.[^/.]+$/, "");
+        setLocalJsonData(prev => ({ ...prev, [fileName]: jsonData }));
+        setEditedLocalJsonData(prev => ({ ...prev, [fileName]: jsonData }));
+        setFileNames(prev => {
+          const newNames = prev.includes(fileName) ? prev : [...prev, fileName];
+          return newNames.sort();
+        });
+        console.log("已加载单个JSON:", fileName);
       }
-      setLocalJsonData(newJsonData);
-      setEditedLocalJsonData(newJsonData); // Initialize edited data with loaded data
-      // Only set fileNames if images are not yet loaded, or if this is the primary source
-      if (Object.keys(localImageUrls).length === 0) {
-        setFileNames(newFileNames.sort());
-      }
-      console.log("Loaded local JSON data:", newJsonData);
     } catch (e: any) {
-      console.error("Error loading JSON zip:", e);
-      setError(`Error loading JSON zip: ${e.message}`);
+      console.error("加载JSON文件出错:", e);
+      setError(`加载JSON文件出错: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -481,12 +509,12 @@ export default function OcrCheckPage() {
     setIsImageZoomed(false);
     setZoomedImageSrc('');
   };
-  
+
   // Function to handle local zoom
   const handleLocalZoom = () => {
     setIsLocalZoomActive(true);
   };
-  
+
   // Function to hide local zoom
   const handleHideLocalZoom = () => {
     setIsLocalZoomActive(false);
@@ -637,8 +665,8 @@ export default function OcrCheckPage() {
 
   // 拼音字符按钮，两行布局
   const pinyinRows: string[][] = [
-    ['ā','á','ǎ','à','ē','é','ě','è','ī','í','ǐ','ì'],
-    ['ō','ó','ǒ','ò','ū','ú','ǔ','ù','ǖ','ǘ','ǚ','ǜ','ü'],
+    ['ā', 'á', 'ǎ', 'à', 'ē', 'é', 'ě', 'è', 'ī', 'í', 'ǐ', 'ì'],
+    ['ō', 'ó', 'ǒ', 'ò', 'ū', 'ú', 'ǔ', 'ù', 'ǖ', 'ǘ', 'ǚ', 'ǜ', 'ü'],
   ];
 
   return (
@@ -718,7 +746,7 @@ export default function OcrCheckPage() {
               {isLocalZoomActive ? '关闭局部放大' : '开启局部放大'}
             </button>
           )}
-          
+
           <button
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={async () => {
@@ -853,7 +881,7 @@ export default function OcrCheckPage() {
             >
               {overlayPosition === 'left' ? '移到右侧' : '移到左侧'}
             </button>
-            
+
             {/* 控制左侧图片放大/缩小的按钮，仅当图上定位文本在左侧时显示 */}
             {overlayPosition === 'left' && (
               <button
@@ -870,13 +898,13 @@ export default function OcrCheckPage() {
       {/* Two panes below toolbar */}
       <div className="flex flex-grow">
         {/* Left Pane: Image with OCR overlay */}
-        <div 
-          className={`p-4 border-r border-gray-300 overflow-auto ${isLeftImageExpanded ? 'flex-grow basis-0' : 'flex-grow basis-0'}`} 
+        <div
+          className={`p-4 border-r border-gray-300 overflow-auto ${isLeftImageExpanded ? 'flex-grow basis-0' : 'flex-grow basis-0'}`}
           ref={leftPaneRef}
           style={isLeftImageExpanded ? { flex: '0 0 100%' } : {}}
         >
-          <div 
-            className="relative w-full h-auto" 
+          <div
+            className="relative w-full h-auto"
             ref={imageContainerRef}
             onMouseMove={(e) => {
               if (isLocalZoomActive && imageContainerRef.current) {
@@ -892,19 +920,19 @@ export default function OcrCheckPage() {
             {overlayPosition === 'left' && (
               <div className="absolute top-2 left-2 bg-white bg-opacity-80 rounded-lg shadow-lg p-2 z-10 flex flex-col">
                 <div className="flex items-center justify-between mb-1">
-                  <button 
+                  <button
                     className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
                     onClick={() => setOverlayOffset(prev => ({ ...prev, x: prev.x - 1 }))}
                   >
                     ←
                   </button>
-                  <input 
-                    type="number" 
-                    value={overlayOffset.x} 
+                  <input
+                    type="number"
+                    value={overlayOffset.x}
                     onChange={(e) => setOverlayOffset(prev => ({ ...prev, x: parseInt(e.target.value) || 0 }))}
                     className="w-12 text-center border border-gray-300 rounded mx-1 text-xs"
                   />
-                  <button 
+                  <button
                     className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
                     onClick={() => setOverlayOffset(prev => ({ ...prev, x: prev.x + 1 }))}
                   >
@@ -912,19 +940,19 @@ export default function OcrCheckPage() {
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <button 
+                  <button
                     className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
                     onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y + 1 }))}
                   >
                     ↑
                   </button>
-                  <input 
-                    type="number" 
-                    value={overlayOffset.y} 
+                  <input
+                    type="number"
+                    value={overlayOffset.y}
                     onChange={(e) => setOverlayOffset(prev => ({ ...prev, y: parseInt(e.target.value) || 0 }))}
                     className="w-12 text-center border border-gray-300 rounded mx-1 text-xs"
                   />
-                  <button 
+                  <button
                     className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
                     onClick={() => setOverlayOffset(prev => ({ ...prev, y: prev.y - 1 }))}
                   >
@@ -933,7 +961,7 @@ export default function OcrCheckPage() {
                 </div>
               </div>
             )}
-            
+
             {imageName && (isLocalMode ? localImageUrls[currentFileName] : `/images/wdzh/${imageName}`) && (
               <Image
                 ref={imageRef}
@@ -948,7 +976,7 @@ export default function OcrCheckPage() {
                 unoptimized={isLocalMode} // Disable Next.js Image optimization for local Blob URLs
               />
             )}
-            
+
             {/* OCR Overlay on image - 当位置为左侧时显示在图片上 */}
             {overlayPosition === 'left' && ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
               const { X, Y, Width, Height } = detection.ItemPolygon;
@@ -958,11 +986,11 @@ export default function OcrCheckPage() {
                 // 获取图片在正常状态和放大状态下的尺寸
                 const normalScaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
                 const normalScaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
-                
+
                 // 直接使用实际测量的缩放因子，不再乘以额外系数
                 const scaleX = normalScaleX;
                 const scaleY = normalScaleY;
-                
+
                 // 偏移量也应根据放大状态调整
                 const offsetX = overlayOffset.x;
                 const offsetY = overlayOffset.y;
@@ -994,12 +1022,11 @@ export default function OcrCheckPage() {
                         whiteSpace: 'nowrap',
                         textOverflow: 'ellipsis',
                         boxSizing: 'border-box',
-                        color: `rgba(0, 0, 0, ${
-                          detection.Confidence === 100 ? 1 :
-                          detection.Confidence === 99 ? 0.9 :
-                          detection.Confidence === 98 ? 0.7 :
-                          0.4
-                        })`,
+                        color: `rgba(0, 0, 0, ${detection.Confidence === 100 ? 1 :
+                            detection.Confidence === 99 ? 0.9 :
+                              detection.Confidence === 98 ? 0.7 :
+                                0.4
+                          })`,
                       }}
                       title={detection.DetectedText}
                       contentEditable="true"
@@ -1042,10 +1069,10 @@ export default function OcrCheckPage() {
                           const preCaretRange = range.cloneRange();
                           preCaretRange.selectNodeContents(e.currentTarget);
                           preCaretRange.setEnd(range.endContainer, range.endOffset);
-                          currentEditableInfo.current = { 
-                            element: e.currentTarget, 
-                            index, 
-                            caretOffset: preCaretRange.toString().length 
+                          currentEditableInfo.current = {
+                            element: e.currentTarget,
+                            index,
+                            caretOffset: preCaretRange.toString().length
                           };
                         }
                       }}
@@ -1053,7 +1080,7 @@ export default function OcrCheckPage() {
                     >
                       {detection.DetectedText}
                     </div>
-                    
+
                     {/* ParagNo 显示在左上角，仅在左侧模式下显示 */}
                     <span style={{
                       position: 'absolute',
@@ -1084,7 +1111,7 @@ export default function OcrCheckPage() {
                         }
                       })()}
                     </span>
-                    
+
                     {/* Confidence 显示在右上角，仅在左侧模式下显示 */}
                     <span style={{
                       position: 'absolute',
@@ -1096,26 +1123,26 @@ export default function OcrCheckPage() {
                       borderRadius: '4px',
                       zIndex: 5,
                     }}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    title="置信度 (Confidence)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                    }}
-                  >
-                    {detection.Confidence}
-                  </span>
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      title="置信度 (Confidence)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                      }}
+                    >
+                      {detection.Confidence}
+                    </span>
                   </div>
                 );
               } else {
                 // 正常大小时使用原有逻辑
                 const scaleX = imageRenderedDimensions.width / originalOcrDimensions.width;
                 const scaleY = imageRenderedDimensions.height / originalOcrDimensions.height;
-                
+
                 return (
                   <div
                     key={`wrapper-${index}`}
@@ -1143,12 +1170,11 @@ export default function OcrCheckPage() {
                         whiteSpace: 'nowrap',
                         textOverflow: 'ellipsis',
                         boxSizing: 'border-box',
-                        color: `rgba(0, 0, 0, ${
-                          detection.Confidence === 100 ? 1 :
-                          detection.Confidence === 99 ? 0.9 :
-                          detection.Confidence === 98 ? 0.7 :
-                          0.4
-                        })`,
+                        color: `rgba(0, 0, 0, ${detection.Confidence === 100 ? 1 :
+                            detection.Confidence === 99 ? 0.9 :
+                              detection.Confidence === 98 ? 0.7 :
+                                0.4
+                          })`,
                       }}
                       title={detection.DetectedText}
                       contentEditable="true"
@@ -1191,10 +1217,10 @@ export default function OcrCheckPage() {
                           const preCaretRange = range.cloneRange();
                           preCaretRange.selectNodeContents(e.currentTarget);
                           preCaretRange.setEnd(range.endContainer, range.endOffset);
-                          currentEditableInfo.current = { 
-                            element: e.currentTarget, 
-                            index, 
-                            caretOffset: preCaretRange.toString().length 
+                          currentEditableInfo.current = {
+                            element: e.currentTarget,
+                            index,
+                            caretOffset: preCaretRange.toString().length
                           };
                         }
                       }}
@@ -1202,7 +1228,7 @@ export default function OcrCheckPage() {
                     >
                       {detection.DetectedText}
                     </div>
-                    
+
                     {/* ParagNo 显示在左上角，仅在左侧模式下显示 */}
                     <span style={{
                       position: 'absolute',
@@ -1233,7 +1259,7 @@ export default function OcrCheckPage() {
                         }
                       })()}
                     </span>
-                    
+
                     {/* Confidence 显示在右上角，仅在左侧模式下显示 */}
                     <span style={{
                       position: 'absolute',
@@ -1245,27 +1271,27 @@ export default function OcrCheckPage() {
                       borderRadius: '4px',
                       zIndex: 5,
                     }}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    title="置信度 (Confidence)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                    }}
-                  >
-                    {detection.Confidence}
-                  </span>
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      title="置信度 (Confidence)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                      }}
+                    >
+                      {detection.Confidence}
+                    </span>
                   </div>
                 );
               }
             })}
-            
+
             {/* Local zoom overlay */}
             {isLocalZoomActive && imageName && (
-              <div 
+              <div
                 className="absolute pointer-events-none"
                 style={{
                   width: '200px',
@@ -1298,7 +1324,7 @@ export default function OcrCheckPage() {
         {isImageZoomed && (
           <div className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center p-4" onClick={handleCloseZoom}>
             <div className="relative max-w-6xl max-h-[90vh]">
-              <button 
+              <button
                 className="absolute top-2 right-2 bg-white rounded-full p-2 z-10 shadow-lg hover:bg-gray-200"
                 onClick={handleCloseZoom}
               >
@@ -1307,9 +1333,9 @@ export default function OcrCheckPage() {
                 </svg>
               </button>
               <div className="overflow-auto max-h-[90vh]">
-                <img 
-                  src={zoomedImageSrc} 
-                  alt="Zoomed OCR Image" 
+                <img
+                  src={zoomedImageSrc}
+                  alt="Zoomed OCR Image"
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
@@ -1318,7 +1344,7 @@ export default function OcrCheckPage() {
         )}
 
         {/* Right Pane: OCR data in different views (raw JSON, paragraph) or overlay on right */}
-        <div 
+        <div
           className={`p-4 overflow-hidden flex flex-col flex-grow basis-0 min-h-0 ${isLeftImageExpanded ? 'hidden' : ''}`}
         >
           {/* 当位置为右侧且视图为overlay时，图上定位文本显示在右侧窗格中 */}
@@ -1326,8 +1352,8 @@ export default function OcrCheckPage() {
             <div
               className="relative border border-gray-300 overflow-y-auto"
               style={imageRenderedDimensions ? {
-                  height: `${imageRenderedDimensions.containerHeight}px`,
-                } : {}}
+                height: `${imageRenderedDimensions.containerHeight}px`,
+              } : {}}
             >
               {ocrData && imageRenderedDimensions && originalOcrDimensions && ocrData.map((detection, index) => {
                 const { X, Y, Width, Height } = detection.ItemPolygon;
@@ -1361,12 +1387,11 @@ export default function OcrCheckPage() {
                         whiteSpace: 'nowrap',
                         textOverflow: 'ellipsis',
                         boxSizing: 'border-box',
-                        color: `rgba(0, 0, 0, ${
-                          detection.Confidence === 100 ? 1 :
-                          detection.Confidence === 99 ? 0.9 :
-                          detection.Confidence === 98 ? 0.7 :
-                          0.4
-                        })`,
+                        color: `rgba(0, 0, 0, ${detection.Confidence === 100 ? 1 :
+                            detection.Confidence === 99 ? 0.9 :
+                              detection.Confidence === 98 ? 0.7 :
+                                0.4
+                          })`,
                       }}
                       title={detection.DetectedText}
                       contentEditable="true"
@@ -1423,53 +1448,53 @@ export default function OcrCheckPage() {
                       borderRadius: '4px',
                       zIndex: 5,
                     }}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    title="页码 (ParagNo)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).blur();
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const raw = (e.currentTarget.textContent || '').trim();
-                      const nextNo = Number(raw);
-                      if (Number.isNaN(nextNo)) {
-                        e.currentTarget.textContent = String(
-                          (function() {
-                            try {
-                              return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
-                            } catch {
-                              return '';
-                            }
-                          })()
-                        );
-                        return;
-                      }
-                      setOcrData(prev => {
-                        if (!prev) return null;
-                        const next = [...prev];
-                        const item = { ...next[index] } as any;
-                        let adv: any = {};
-                        try {
-                          adv = JSON.parse(item.AdvancedInfo);
-                        } catch (e) {
-                          console.error("Error parsing AdvancedInfo:", e);
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      title="页码 (ParagNo)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
                         }
-                        adv.Parag = { ...adv.Parag, ParagNo: nextNo };
-                        item.AdvancedInfo = JSON.stringify(adv);
-                        next[index] = item;
-                        return next;
-                      });
-                    }}
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLElement).blur();
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const raw = (e.currentTarget.textContent || '').trim();
+                        const nextNo = Number(raw);
+                        if (Number.isNaN(nextNo)) {
+                          e.currentTarget.textContent = String(
+                            (function () {
+                              try {
+                                return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
+                              } catch {
+                                return '';
+                              }
+                            })()
+                          );
+                          return;
+                        }
+                        setOcrData(prev => {
+                          if (!prev) return null;
+                          const next = [...prev];
+                          const item = { ...next[index] } as any;
+                          let adv: any = {};
+                          try {
+                            adv = JSON.parse(item.AdvancedInfo);
+                          } catch (e) {
+                            console.error("Error parsing AdvancedInfo:", e);
+                          }
+                          adv.Parag = { ...adv.Parag, ParagNo: nextNo };
+                          item.AdvancedInfo = JSON.stringify(adv);
+                          next[index] = item;
+                          return next;
+                        });
+                      }}
                     >
-                      {(function() {
+                      {(function () {
                         try {
                           return JSON.parse(detection.AdvancedInfo).Parag?.ParagNo ?? '';
                         } catch {
@@ -1487,34 +1512,34 @@ export default function OcrCheckPage() {
                       borderRadius: '4px',
                       zIndex: 5,
                     }}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    title="置信度 (Confidence)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.shiftKey) {
-                        e.preventDefault();
-                        insertLineBreakAtCaret();
-                        return;
-                      }
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).blur();
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const raw = (e.currentTarget.textContent || '').trim();
-                      const nextVal = Number(raw);
-                      if (Number.isNaN(nextVal)) {
-                        e.currentTarget.textContent = String(detection.Confidence ?? '');
-                        return;
-                      }
-                      setOcrData(prev => {
-                        if (!prev) return null;
-                        const next = [...prev];
-                        next[index] = { ...next[index], Confidence: nextVal } as any;
-                        return next;
-                      });
-                    }}
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      title="置信度 (Confidence)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.shiftKey) {
+                          e.preventDefault();
+                          insertLineBreakAtCaret();
+                          return;
+                        }
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLElement).blur();
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const raw = (e.currentTarget.textContent || '').trim();
+                        const nextVal = Number(raw);
+                        if (Number.isNaN(nextVal)) {
+                          e.currentTarget.textContent = String(detection.Confidence ?? '');
+                          return;
+                        }
+                        setOcrData(prev => {
+                          if (!prev) return null;
+                          const next = [...prev];
+                          next[index] = { ...next[index], Confidence: nextVal } as any;
+                          return next;
+                        });
+                      }}
                     >
                       {detection.Confidence}
                     </span>
@@ -1526,14 +1551,14 @@ export default function OcrCheckPage() {
           {/* 原始JSON视图 */}
           {rightViewMode === 'raw' && (
             <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightRawRef}
-                 style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
+              style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
               <pre className="font-mono text-xs whitespace-pre-wrap break-words">{JSON.stringify(ocrData ?? [], null, 2)}</pre>
             </div>
           )}
           {/* 按段号输出文本视图 */}
           {rightViewMode === 'paragraph' && (
             <div className="border border-gray-300 p-2 overflow-y-auto" ref={rightParagraphRef}
-                 style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
+              style={imageRenderedDimensions ? { height: `${imageRenderedDimensions.containerHeight}px` } : {}}>
               <ol className="list-decimal pl-4 space-y-1 text-sm">
                 {paragraphLines.map((line, idx) => (
                   <li key={`parag-${line.paragNo ?? 'none'}-${idx}`}>
