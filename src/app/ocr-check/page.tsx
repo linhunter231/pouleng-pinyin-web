@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense } from 'react';
 import Image from 'next/image';
 import JSZip from 'jszip'; // Import JSZip
 import { useSearchParams } from 'next/navigation'; // Import useSearchParams
@@ -20,6 +20,16 @@ interface OcrDetectionItem {
 type OcrResult = OcrDetectionItem[];
 
 export default function OcrCheckPage() {
+  // 将组件内容包装在Suspense中以支持useSearchParams
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OcrCheckPageContent />
+    </Suspense>
+  );
+}
+
+// 实际的组件内容移到这个子组件中
+function OcrCheckPageContent() {
   const searchParams = useSearchParams();
   const enableRemote = searchParams.get('remote') === 'true'; // Check if remote mode is enabled via URL parameter
 
@@ -47,12 +57,15 @@ export default function OcrCheckPage() {
   const [originalOcrDimensions, setOriginalOcrDimensions] = useState<{ width: number; height: number } | null>(null);
   const [imageRenderedDimensions, setImageRenderedDimensions] = useState<{ width: number; height: number; naturalWidth: number; naturalHeight: number; offsetX: number; offsetY: number; containerHeight: number } | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
+  const [fileIndex, setFileIndex] = useState<Record<string, { hasImage: boolean; hasJson: boolean }>>({});
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const currentEditableInfo = useRef<{ element: HTMLElement; index: number; caretOffset?: number } | null>(null);
   const pinyinButtonsRef = useRef<HTMLDivElement>(null);
   const rightRawRef = useRef<HTMLDivElement>(null);
   const rightParagraphRef = useRef<HTMLDivElement>(null);
   const isSyncingScrollRef = useRef(false);
+  const prevIsLocalModeRef = useRef<boolean | null>(null);
 
   // Local mode states
   const [imageZipFile, setImageZipFile] = useState<File | null>(null);
@@ -182,12 +195,28 @@ export default function OcrCheckPage() {
     return lines;
   }, [ocrData]);
 
-  // Function to clean up object URLs when component unmounts or image URLs change
+  // Function to clean up object URLs only when component unmounts
+  // 重要：移除localImageUrls依赖，防止每次更新时都清理URL
   useEffect(() => {
     return () => {
-      Object.values(localImageUrls).forEach(url => URL.revokeObjectURL(url));
+      // 添加安全检查
+      try {
+        const urls = Object.values(localImageUrls);
+        console.log(`组件卸载时清理 ${urls.length} 个blob URLs`);
+        urls.forEach(url => {
+          if (url && url.startsWith('blob:')) {
+            try {
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              console.warn('撤销blob URL失败:', e);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('清理blob URLs时发生错误:', error);
+      }
     };
-  }, [localImageUrls]);
+  }, []); // 空依赖数组，确保只在组件卸载时执行
 
   const currentFileName = fileNames[currentImageIndex];
   const imageName = currentFileName ? `${currentFileName}.png` : '';
@@ -213,10 +242,20 @@ export default function OcrCheckPage() {
 
   // Handlers for local file uploads
   const handleImageZipUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) {
+      console.log('没有选择文件');
+      return;
+    }
+    
+    const file = files[0];
+    console.log(`开始处理文件: ${file.name}, 大小: ${file.size} bytes, 类型: ${file.type}`);
 
-    setIsLocalMode(true);
+    if (!isLocalMode) {
+      console.log('切换到本地模式');
+      setIsLocalMode(true);
+    }
+    
     setLoading(true);
     setError(null);
 
@@ -225,51 +264,156 @@ export default function OcrCheckPage() {
       if (file.name.endsWith('.zip')) {
         // 处理ZIP文件
         setImageZipFile(file);
-        const zip = await JSZip.loadAsync(file);
-        const newImageUrls: Record<string, string> = {};
-        const newFileNames: string[] = [];
+        
+        // 显示进度提示
+        const progressInterval = setInterval(() => {
+          console.log('正在解压图片ZIP，请稍候...');
+        }, 1000);
 
-        for (const relativePath in zip.files) {
-          const zipEntry = zip.files[relativePath];
-          if (!zipEntry.dir && (relativePath.endsWith('.png') || relativePath.endsWith('.jpg') || relativePath.endsWith('.jpeg'))) {
-            const blob = await zipEntry.async('blob');
-            const url = URL.createObjectURL(blob);
-            const fileName = relativePath.split('/').pop()?.split('.')[0];
-            if (fileName) {
-              newImageUrls[fileName] = url;
-              newFileNames.push(fileName);
+        try {
+          console.log('开始加载ZIP文件...');
+          const zip = await JSZip.loadAsync(file);
+          console.log('ZIP文件加载成功，包含文件数量:', Object.keys(zip.files).length);
+          const newImageUrls: Record<string, string> = {};
+          const newFileNames: string[] = [];
+          const totalFiles = Object.keys(zip.files).length;
+          let processedCount = 0;
+
+          for (const relativePath in zip.files) {
+            const zipEntry = zip.files[relativePath];
+            if (!zipEntry.dir && (relativePath.endsWith('.png') || relativePath.endsWith('.jpg') || relativePath.endsWith('.jpeg'))) {
+              try {
+                console.log(`处理ZIP内文件: ${relativePath}`);
+                const blob = await zipEntry.async('blob');
+                console.log(`文件 ${relativePath} 解压为blob成功，大小: ${blob.size} bytes, 类型: ${blob.type}`);
+                
+                // 创建blob的副本，确保引用不会被意外释放
+                const blobCopy = new Blob([blob], { type: blob.type });
+                console.log(`创建blob副本成功`);
+                
+                const url = URL.createObjectURL(blobCopy);
+                const fileName = relativePath.split('/').pop()?.split('.')[0];
+                
+                if (fileName) {
+                  console.log(`从ZIP添加图片URL: ${fileName} -> ${url}`);
+                  newImageUrls[fileName] = url;
+                  newFileNames.push(fileName);
+                } else {
+                  console.warn(`无法提取有效文件名: ${relativePath}`);
+                }
+              } catch (fileError) {
+                console.error(`处理文件 ${relativePath} 时出错:`, fileError);
+              }
+              processedCount++;
             }
           }
+
+          clearInterval(progressInterval);
+          
+          console.log(`ZIP文件处理完成，成功提取 ${Object.keys(newImageUrls).length} 个图片文件`);
+          
+          if (Object.keys(newImageUrls).length === 0) {
+            throw new Error('ZIP文件中没有找到有效的图片文件(.png, .jpg, .jpeg)');
+          }
+
+          setLocalImageUrls(prev => {
+            const updated = { ...prev, ...newImageUrls };
+            console.log(`更新localImageUrls状态: 原大小 ${Object.keys(prev).length}, 新大小 ${Object.keys(updated).length}`);
+            return updated;
+          });
+          // 更新fileNames数组，确保从ZIP加载的图片文件能够被正确引用
+          setFileNames(prev => {
+            const currentFileNames = [...prev];
+            newFileNames.forEach(name => {
+              if (!currentFileNames.includes(name)) {
+                currentFileNames.push(name);
+              }
+            });
+            return currentFileNames;
+          });
+          // 确保选中第一个新上传的文件
+          if (newFileNames.length > 0) {
+            // 使用setTimeout确保在fileNames更新后再设置currentImageIndex
+            setTimeout(() => {
+              setCurrentImageIndex(prevIndex => {
+                console.log(`设置当前图片索引，新文件名列表:`, newFileNames);
+                return 0; // 选择第一个文件
+              });
+            }, 0);
+          }
+          console.log(`成功加载 ${Object.keys(newImageUrls).length} 个图片文件`);
+          
+          // 提示用户加载结果
+          if (Object.keys(localJsonData).length > 0) {
+            alert(`成功从ZIP中加载 ${Object.keys(newImageUrls).length} 个图片文件。文件将与已加载的JSON进行匹配。`);
+          }
+        } finally {
+          clearInterval(progressInterval);
         }
-        setLocalImageUrls(newImageUrls);
-        if (Object.keys(localJsonData).length === 0) {
-          setFileNames(newFileNames.sort());
-        }
-        console.log("已加载ZIP中的图片:", newImageUrls);
       } else {
         // 处理单个图片文件
-        const url = URL.createObjectURL(file);
+        if (!file.type.startsWith('image/')) {
+          throw new Error('请上传有效的图片文件');
+        }
+        
+        // 为避免连续上传时的问题，创建新的file对象副本
+        try {
+          const fileCopy = new File([file], file.name, { type: file.type });
+          console.log(`创建文件副本成功: ${fileCopy.name}`);
+          
+          const url = URL.createObjectURL(fileCopy);
+          const fileName = file.name.replace(/\.[^/.]+$/, "");
+          
+          console.log(`创建blob URL成功: ${url}`);
+          
+          // 使用函数式更新确保状态的一致性
+          setLocalImageUrls(prev => {
+            console.log(`更新localImageUrls状态: 添加 ${fileName} -> ${url}`);
+            return { ...prev, [fileName]: url };
+          });
+        } catch (urlError) {
+          console.error('创建blob URL时出错:', urlError);
+          throw new Error(`创建图片URL失败: ${urlError.message}`);
+        }
+        
         const fileName = file.name.replace(/\.[^/.]+$/, "");
-        setLocalImageUrls(prev => ({ ...prev, [fileName]: url }));
+        
+        // 更新fileNames数组，确保新上传的图片能够被正确引用
         setFileNames(prev => {
-          const newNames = prev.includes(fileName) ? prev : [...prev, fileName];
-          return newNames.sort();
+          const updated = !prev.includes(fileName) ? [...prev, fileName] : prev;
+          console.log(`更新fileNames数组: 原长度 ${prev.length}, 新长度 ${updated.length}`);
+          return updated;
         });
+        
+        // 使用setTimeout确保在fileNames更新后再设置currentImageIndex
+        setTimeout(() => {
+          setCurrentImageIndex(0); // 始终选择新上传的文件
+          console.log(`设置currentImageIndex为0，选择新上传的文件: ${fileName}`);
+        }, 0);
+        
         console.log("已加载单个图片:", fileName);
+        alert(`成功加载图片文件: ${fileName}`);
       }
     } catch (e: any) {
       console.error("加载图片文件出错:", e);
-      setError(`加载图片文件出错: ${e.message}`);
+      const errorMessage = `加载图片文件出错: ${e.message || String(e)}`;
+      setError(errorMessage);
+      alert(`加载图片文件失败: ${e.message || String(e)}`);
     } finally {
       setLoading(false);
+      // 重置文件输入，允许重复选择相同文件
+      if (event.target) {
+        event.target.value = '';
+        console.log('重置文件输入，允许重复选择相同文件');
+      }
     }
-  }, [localJsonData]);
+  }, [localJsonData, isLocalMode]);
 
   const handleJsonZipUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsLocalMode(true);
+    if (!isLocalMode) setIsLocalMode(true);
     setLoading(true);
     setError(null);
 
@@ -278,63 +422,216 @@ export default function OcrCheckPage() {
       if (file.name.endsWith('.zip')) {
         // 处理ZIP文件
         setJsonZipFile(file);
-        const zip = await JSZip.loadAsync(file);
-        const newJsonData: Record<string, any> = {};
-        const newFileNames: string[] = [];
+        
+        // 显示进度提示
+        const progressInterval = setInterval(() => {
+          console.log('正在解压JSON ZIP，请稍候...');
+        }, 1000);
 
-        for (const relativePath in zip.files) {
-          const zipEntry = zip.files[relativePath];
-          if (!zipEntry.dir && relativePath.endsWith('.json')) {
-            const text = await zipEntry.async('string');
-            const jsonData = JSON.parse(text);
-            const fileName = relativePath.split('/').pop()?.split('.')[0];
-            if (fileName) {
-              newJsonData[fileName] = jsonData;
-              newFileNames.push(fileName);
+        try {
+          const zip = await JSZip.loadAsync(file);
+          const newJsonData: Record<string, any> = {};
+          const failedFiles: string[] = [];
+          const totalFiles = Object.keys(zip.files).length;
+
+          for (const relativePath in zip.files) {
+            const zipEntry = zip.files[relativePath];
+            if (!zipEntry.dir && relativePath.endsWith('.json')) {
+              try {
+                const text = await zipEntry.async('string');
+                const jsonData = JSON.parse(text);
+                const fileName = relativePath.split('/').pop()?.split('.')[0];
+                if (fileName) {
+                  // 验证JSON结构是否包含必要的字段
+                  if (!jsonData.Response?.TextDetections && !jsonData.TextDetections) {
+                    console.warn(`JSON文件 ${relativePath} 缺少必要的TextDetections字段`);
+                    failedFiles.push(relativePath);
+                    continue;
+                  }
+                  newJsonData[fileName] = jsonData;
+                }
+              } catch (fileError) {
+                console.warn(`处理文件 ${relativePath} 时出错:`, fileError);
+                failedFiles.push(relativePath);
+              }
             }
           }
+
+          clearInterval(progressInterval);
+          
+          if (Object.keys(newJsonData).length === 0) {
+            throw new Error('ZIP文件中没有找到有效的JSON文件或所有JSON文件格式不正确');
+          }
+
+          setLocalJsonData(prev => ({ ...prev, ...newJsonData }));
+          setEditedLocalJsonData(prev => ({ ...prev, ...newJsonData }));
+          // 更新fileNames数组，确保从ZIP加载的JSON文件能够被正确引用
+          setFileNames(prev => {
+            const currentFileNames = [...prev];
+            Object.keys(newJsonData).forEach(name => {
+              if (!currentFileNames.includes(name)) {
+                currentFileNames.push(name);
+              }
+            });
+            return currentFileNames;
+          });
+          console.log(`成功加载 ${Object.keys(newJsonData).length} 个JSON文件`);
+          
+          // 提示用户加载结果
+          let message = `成功从ZIP中加载 ${Object.keys(newJsonData).length} 个JSON文件。`;
+          if (failedFiles.length > 0) {
+            message += ` 有 ${failedFiles.length} 个文件解析失败，请查看控制台了解详情。`;
+          }
+          if (Object.keys(localImageUrls).length > 0) {
+            message += " 文件将与已加载的图片进行匹配。";
+          }
+          alert(message);
+        } finally {
+          clearInterval(progressInterval);
         }
-        setLocalJsonData(newJsonData);
-        setEditedLocalJsonData(newJsonData);
-        if (Object.keys(localImageUrls).length === 0) {
-          setFileNames(newFileNames.sort());
-        }
-        console.log("已加载ZIP中的JSON:", newJsonData);
       } else {
         // 处理单个JSON文件
-        const text = await file.text();
-        const jsonData = JSON.parse(text);
-        const fileName = file.name.replace(/\.[^/.]+$/, "");
-        setLocalJsonData(prev => ({ ...prev, [fileName]: jsonData }));
-        setEditedLocalJsonData(prev => ({ ...prev, [fileName]: jsonData }));
-        setFileNames(prev => {
-          const newNames = prev.includes(fileName) ? prev : [...prev, fileName];
-          return newNames.sort();
-        });
-        console.log("已加载单个JSON:", fileName);
+        if (!file.name.endsWith('.json')) {
+          throw new Error('请上传有效的JSON文件');
+        }
+        
+        try {
+          const text = await file.text();
+          const jsonData = JSON.parse(text);
+          
+          // 验证JSON结构
+          if (!jsonData.Response?.TextDetections && !jsonData.TextDetections) {
+            throw new Error('JSON文件缺少必要的TextDetections字段');
+          }
+          
+          const fileName = file.name.replace(/\.[^/.]+$/, "");
+          setLocalJsonData(prev => ({ ...prev, [fileName]: jsonData }));
+          setEditedLocalJsonData(prev => ({ ...prev, [fileName]: jsonData }));
+          // 更新fileNames数组，确保新上传的JSON文件能够被正确引用
+          setFileNames(prev => {
+            if (!prev.includes(fileName)) {
+              return [...prev, fileName];
+            }
+            return prev;
+          });
+          // 如果是第一个上传的文件，设置为当前选中文件
+          setCurrentImageIndex(prevIndex => {
+            if (fileNames.length === 0) {
+              return 0;
+            }
+            return prevIndex;
+          });
+          console.log("已加载单个JSON:", fileName);
+          alert(`成功加载JSON文件: ${fileName}`);
+        } catch (parseError) {
+          throw new Error('JSON文件解析失败，请检查文件格式');
+        }
       }
     } catch (e: any) {
       console.error("加载JSON文件出错:", e);
       setError(`加载JSON文件出错: ${e.message}`);
+      alert(`加载JSON文件失败: ${e.message}`);
     } finally {
       setLoading(false);
+      // 重置文件输入，允许重复选择相同文件
+      if (event.target) {
+        event.target.value = '';
+      }
     }
-  }, [localImageUrls]);
+  }, [localImageUrls, isLocalMode]);
 
   // Effect to combine file names from both image and JSON zips
   useEffect(() => {
     if (isLocalMode) {
-      const imageKeys = Object.keys(localImageUrls);
-      const jsonKeys = Object.keys(localJsonData);
+      // 使用文件索引来获取匹配的文件
+      const matchedFiles = Object.entries(fileIndex)
+        .filter(([_, info]) => info.hasImage && info.hasJson)
+        .map(([fileName]) => fileName);
+      
+      // 对文件名进行自然排序
+      const sortedMatchedFiles = matchedFiles.sort((a, b) => {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      
+      if (sortedMatchedFiles.length > 0) {
+        setFileNames(sortedMatchedFiles);
+        console.log(`找到 ${sortedMatchedFiles.length} 个同时有图片和JSON的文件`);
+        
+        // 设置初始OCR数据
+        if (sortedMatchedFiles.length > 0) {
+          const firstKey = sortedMatchedFiles[0];
+          const data = localJsonData[firstKey];
+          const textDetections = data?.Response?.TextDetections || data?.TextDetections;
+          if (textDetections) {
+            setOcrData(textDetections as OcrResult);
+            setInitialOcrData(textDetections as OcrResult);
+          } else {
+            setOcrData([]);
+            setInitialOcrData([]);
+          }
+          setCurrentImageIndex(0);
+        }
+      } else {
+        // 如果没有完全匹配的文件，尝试使用智能匹配
+        const allFiles = Object.keys(fileIndex);
+        const sortedAllFiles = allFiles.sort((a, b) => {
+          return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        
+        setFileNames(sortedAllFiles);
+        
+        if (allFiles.length > 0) {
+          console.log(`找到 ${allFiles.length} 个文件，但没有完全匹配。尝试使用智能匹配。`);
+        } else {
+          console.log('没有找到任何文件');
+        }
+      }
+      
+      // 导出并显示文件统计信息
+      const stats = exportFileStats();
+      if (stats.totalFiles > 0 && stats.matchedFiles < stats.totalFiles) {
+        console.log(`文件匹配情况: ${stats.matchedFiles}/${stats.totalFiles} 个文件完全匹配`);
+      }
+    }
+  }, [isLocalMode, localImageUrls, localJsonData, fileIndex]);
+    
+    // 智能文件匹配函数 - 尝试找到最佳匹配的文件
+    const findBestMatch = useCallback((fileName: string): string | null => {
+      // 完全匹配
+      if (fileIndex[fileName] && fileIndex[fileName].hasImage && fileIndex[fileName].hasJson) {
+        return fileName;
+      }
+      
+      // 尝试相似文件名匹配（处理数字后缀、空格等差异）
+      const normalizedName = fileName.toLowerCase().replace(/\s+/g, '').replace(/\d+$/, '');
+      
+      for (const key in fileIndex) {
+        if (fileIndex[key].hasImage && fileIndex[key].hasJson) {
+          const normalizedKey = key.toLowerCase().replace(/\s+/g, '').replace(/\d+$/, '');
+          if (normalizedName === normalizedKey) {
+            return key;
+          }
+        }
+      }
+      
+      return null;
+    }, [fileIndex]);
 
-      // Find common keys or combine unique keys, then sort
-      const combinedKeys = Array.from(new Set([...imageKeys, ...jsonKeys])).sort();
-      setFileNames(combinedKeys);
-
-      // If both are loaded, try to set initial OCR data
-      if (imageKeys.length > 0 && jsonKeys.length > 0 && combinedKeys.length > 0) {
-        const firstKey = combinedKeys[0];
-        const data = localJsonData[firstKey];
+    // 当前文件名变化时，尝试智能匹配
+  useEffect(() => {
+    if (isLocalMode && selectedFileName && !localJsonData[selectedFileName]) {
+      const bestMatch = findBestMatch(selectedFileName);
+      if (bestMatch && localJsonData[bestMatch]) {
+        console.log(`智能匹配: 找不到 ${selectedFileName} 的JSON，使用 ${bestMatch} 的JSON数据`);
+        const data = localJsonData[bestMatch];
+        const textDetections = data?.Response?.TextDetections || data?.TextDetections;
+        if (textDetections) {
+          setOcrData(textDetections as OcrResult);
+          setInitialOcrData(textDetections as OcrResult);
+        }
+      } else if (localJsonData[selectedFileName]) {
+        // 直接使用匹配的JSON数据
+        const data = localJsonData[selectedFileName];
         const textDetections = data?.Response?.TextDetections || data?.TextDetections;
         if (textDetections) {
           setOcrData(textDetections as OcrResult);
@@ -343,10 +640,115 @@ export default function OcrCheckPage() {
           setOcrData([]);
           setInitialOcrData([]);
         }
-        setCurrentImageIndex(0);
       }
     }
+  }, [isLocalMode, selectedFileName, localJsonData, findBestMatch]);
+  
+  // 文件索引缓存，用于快速查找和匹配（已在组件顶部定义）
+  // 构建文件索引
+  useEffect(() => {
+    if (isLocalMode) {
+      const imageKeys = Object.keys(localImageUrls);
+      const jsonKeys = Object.keys(localJsonData);
+      
+      const newIndex: Record<string, { hasImage: boolean; hasJson: boolean }> = {};
+      
+      // 添加所有图片文件到索引
+      imageKeys.forEach(key => {
+        newIndex[key] = { ...newIndex[key], hasImage: true, hasJson: false };
+      });
+      
+      // 添加所有JSON文件到索引
+      jsonKeys.forEach(key => {
+        newIndex[key] = { ...newIndex[key], hasJson: true, hasImage: false };
+      });
+      
+      setFileIndex(newIndex);
+      
+      console.log('文件索引已更新，包含', Object.keys(newIndex).length, '个文件');
+    } else {
+      // 在远程模式下清空索引
+      setFileIndex({});
+    }
   }, [isLocalMode, localImageUrls, localJsonData]);
+  
+
+
+  // 选中的文件名状态（已在组件顶部定义）
+  
+  // 重置本地模式数据 - 优化版本
+  const resetLocalData = useCallback(() => {
+    try {
+      // 记录开始时间用于性能监控
+      const startTime = performance.now();
+      
+      // 清理blob URLs以避免内存泄漏，添加错误处理
+      const blobUrls = Object.values(localImageUrls);
+      let revokedCount = 0;
+      let failedCount = 0;
+      
+      for (const url of blobUrls) {
+        try {
+          if (url && url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+            revokedCount++;
+          }
+        } catch (error) {
+          console.warn('清理Blob URL失败:', error);
+          failedCount++;
+        }
+      }
+      
+      // 清理currentEditableInfo引用，避免潜在的内存泄漏
+      if (currentEditableInfo.current) {
+        currentEditableInfo.current = null;
+      }
+      
+      // 重置状态
+      setLocalImageUrls({});
+      setLocalJsonData({});
+      setEditedLocalJsonData({});
+      setImageZipFile(null);
+      setJsonZipFile(null);
+      setFileNames([]);
+      setSelectedFileName('');
+      setOcrData([]);
+      setInitialOcrData([]);
+      setFileIndex({});
+      setError(null);
+      
+      // 性能日志
+      const endTime = performance.now();
+      console.log(`本地数据重置完成: 清理了${revokedCount}个Blob URL, ${failedCount}个失败, 耗时${(endTime - startTime).toFixed(2)}ms`);
+      
+      // 使用setTimeout避免阻塞UI线程
+      setTimeout(() => {
+        // 检查DOM是否仍然存在且可访问
+        if (typeof alert === 'function') {
+          alert(`已重置所有本地数据\n\n清理统计:\n- Blob URL: ${revokedCount}个成功, ${failedCount}个失败\n- 文件数据: ${Object.keys(localImageUrls).length}个文件`);
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('重置本地数据时发生错误:', error);
+      if (typeof alert === 'function') {
+        alert('重置数据时发生错误，请刷新页面重试');
+      }
+    }
+  }, [localImageUrls]);
+  
+  // 导出文件索引和匹配统计信息
+  const exportFileStats = useCallback(() => {
+    const stats = {
+      totalFiles: Object.keys(fileIndex).length,
+      matchedFiles: Object.values(fileIndex).filter(f => f.hasImage && f.hasJson).length,
+      imageOnlyFiles: Object.values(fileIndex).filter(f => f.hasImage && !f.hasJson).length,
+      jsonOnlyFiles: Object.values(fileIndex).filter(f => !f.hasImage && f.hasJson).length
+    };
+    
+    console.log('文件统计信息:', stats);
+    return stats;
+  }, [fileIndex]);
 
   // Effect for fetching file names (remote mode) or setting OCR data (local mode)
   useEffect(() => {
@@ -417,6 +819,11 @@ export default function OcrCheckPage() {
 
   // Effect to reset states when isLocalMode changes
   useEffect(() => {
+    if (prevIsLocalModeRef.current !== null && prevIsLocalModeRef.current === isLocalMode) {
+      return;
+    }
+    prevIsLocalModeRef.current = isLocalMode;
+    
     setOcrData(null);
     setInitialOcrData(null);
     setFileNames([]);
@@ -675,27 +1082,34 @@ export default function OcrCheckPage() {
       <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-300 flex justify-between items-center">
         {/* Left controls */}
         <div className="flex items-center space-x-2">
-          <input
-            type="file"
-            accept=".zip"
-            onChange={handleImageZipUpload}
-            className="hidden"
-            id="imageZipUpload"
-          />
-          <label htmlFor="imageZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
-            导入图片 ZIP
-          </label>
+          {/* Import/Export section with consistent styling */}
+          <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
+            <input
+              type="file"
+              accept=".zip"
+              onChange={handleImageZipUpload}
+              className="hidden"
+              id="imageZipUpload"
+            />
+            <label htmlFor="imageZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer transition-all duration-200 transform hover:scale-105">
+              <span className="flex items-center">
+                📁 导入图片 ZIP
+              </span>
+            </label>
 
-          <input
-            type="file"
-            accept=".zip"
-            onChange={handleJsonZipUpload}
-            className="hidden"
-            id="jsonZipUpload"
-          />
-          <label htmlFor="jsonZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
-            导入 JSON ZIP
-          </label>
+            <input
+              type="file"
+              accept=".zip"
+              onChange={handleJsonZipUpload}
+              className="hidden"
+              id="jsonZipUpload"
+            />
+            <label htmlFor="jsonZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer transition-all duration-200 transform hover:scale-105">
+              <span className="flex items-center">
+                📄 导入 JSON ZIP
+              </span>
+            </label>
+          </div>
 
           {/* Only show mode toggle button when remote mode is enabled via URL parameter */}
           {enableRemote && (
@@ -751,29 +1165,74 @@ export default function OcrCheckPage() {
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={async () => {
               if (isLocalMode) {
-                // Handle local save (download ZIP)
-                const zip = new JSZip();
-                for (const fileName in editedLocalJsonData) {
-                  const originalJson = editedLocalJsonData[fileName];
-                  // Reconstruct JSON with updated TextDetections
-                  const newJson = {
-                    ...originalJson,
-                    Response: {
-                      ...originalJson.Response,
-                      TextDetections: originalJson.Response?.TextDetections || originalJson.TextDetections,
-                    },
-                    TextDetections: originalJson.TextDetections, // Also update top-level if it exists
-                  };
-                  zip.file(`${fileName}.json`, JSON.stringify(newJson, null, 2));
+                try {
+                  // Handle local save (download ZIP)
+                  console.log('开始导出修改后的OCR数据...');
+                  const zip = new JSZip();
+                  let filesProcessed = 0;
+                  
+                  // 使用异步方式处理每个文件
+                  for (const fileName in editedLocalJsonData) {
+                    try {
+                      const originalJson = editedLocalJsonData[fileName];
+                      
+                      // 检查文件是否有对应的OCR数据
+                      const currentOcrData = ocrData;
+                      if (currentOcrData && currentOcrData.length > 0) {
+                        // 重建JSON结构，确保数据一致性
+                        const newJson = {
+                          ...originalJson,
+                          // 确保Response对象存在
+                          Response: {
+                            ...originalJson.Response,
+                            TextDetections: currentOcrData
+                          },
+                          // 同时更新顶层TextDetections
+                          TextDetections: currentOcrData
+                        };
+                        
+                        // 使用一致的文件名格式
+                        const cleanFileName = fileName.replace(/\.(jpg|jpeg|png|json)$/i, '');
+                        zip.file(`${cleanFileName}.json`, JSON.stringify(newJson, null, 2));
+                        filesProcessed++;
+                      }
+                    } catch (fileError) {
+                      console.error(`处理文件 ${fileName} 时出错:`, fileError);
+                    }
+                  }
+                  
+                  if (filesProcessed === 0) {
+                    alert('没有找到可导出的OCR数据！');
+                    return;
+                  }
+                  
+                  // 生成ZIP文件并下载
+                  console.log(`准备下载包含 ${filesProcessed} 个文件的ZIP包...`);
+                  const content = await zip.generateAsync({ 
+                    type: "blob",
+                    compression: "DEFLATE",
+                    compressionOptions: { level: 6 } // 平衡压缩率和性能
+                  });
+                  
+                  const a = document.createElement('a');
+                  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                  a.href = URL.createObjectURL(content);
+                  a.download = `ocr_json_updated_${timestamp}.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  
+                  // 清理和反馈
+                  setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href); // 释放URL对象，避免内存泄漏
+                  }, 100);
+                  
+                  alert(`成功导出 ${filesProcessed} 个修改后的OCR数据文件！`);
+                  console.log('OCR数据导出完成');
+                } catch (error) {
+                  console.error('导出OCR数据时出错:', error);
+                  alert('导出OCR数据失败，请检查控制台日志！');
                 }
-                const content = await zip.generateAsync({ type: "blob" });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(content);
-                a.download = 'ocr_json_updated.zip';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                alert('OCR data downloaded successfully!');
               } else if (enableRemote) {
                 // Original remote save logic - only execute when remote mode is enabled
                 try {
@@ -799,10 +1258,12 @@ export default function OcrCheckPage() {
               }
             }}
           >
-            保存所有更改
+            <span className="flex items-center">
+              💾 保存所有更改
+            </span>
           </button>
           <button
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all duration-200 transform hover:scale-105 flex items-center"
             onClick={() => {
               if (isLocalMode && currentFileName) {
                 const data = localJsonData[currentFileName];
@@ -823,7 +1284,9 @@ export default function OcrCheckPage() {
               }
             }}
           >
-            重置所有更改
+            <span className="flex items-center">
+              🔄 重置所有更改
+            </span>
           </button>
           <div className="space-y-2" ref={pinyinButtonsRef}>
             {pinyinRows.map((row, idx) => (
