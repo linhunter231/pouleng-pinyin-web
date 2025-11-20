@@ -93,6 +93,23 @@ function OcrCheckPageContent() {
 
   // 右侧视图模式：图上定位文本 / 原始 JSON / 段号排序文本
   const [rightViewMode, setRightViewMode] = useState<'overlay' | 'raw' | 'paragraph'>('overlay');
+  
+  // 通知状态和函数
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+  
+  // 显示通知的函数
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    console.log('显示通知:', message, type); // 添加调试日志
+    setNotification({ message, type });
+    // 3秒后自动隐藏通知
+    const timer = setTimeout(() => {
+      console.log('隐藏通知'); // 添加调试日志
+      setNotification(null);
+    }, 3000);
+    
+    // 使用useEffect清理定时器（在useCallback中不能直接返回清理函数）
+    // 注意：这个定时器会在组件卸载时自动清理，因为setNotification会触发重新渲染
+  }, []);
 
   // 同步左右两侧的滚动（在原始JSON/按段号模式下)
   useEffect(() => {
@@ -345,7 +362,9 @@ function OcrCheckPageContent() {
           
           // 提示用户加载结果
           if (Object.keys(localJsonData).length > 0) {
-            alert(`成功从ZIP中加载 ${Object.keys(newImageUrls).length} 个图片文件。文件将与已加载的JSON进行匹配。`);
+            showNotification(`成功从ZIP中加载 ${Object.keys(newImageUrls).length} 个图片文件。文件将与已加载的JSON进行匹配。`);
+          } else {
+            showNotification(`成功从ZIP中加载 ${Object.keys(newImageUrls).length} 个图片文件。`);
           }
         } finally {
           clearInterval(progressInterval);
@@ -392,13 +411,13 @@ function OcrCheckPageContent() {
         }, 0);
         
         console.log("已加载单个图片:", fileName);
-        alert(`成功加载图片文件: ${fileName}`);
+        showNotification(`成功加载图片文件: ${fileName}`);
       }
     } catch (e: any) {
       console.error("加载图片文件出错:", e);
-      const errorMessage = `加载图片文件出错: ${e.message || String(e)}`;
-      setError(errorMessage);
-      alert(`加载图片文件失败: ${e.message || String(e)}`);
+        const errorMessage = `加载图片文件出错: ${e.message || String(e)}`;
+        setError(errorMessage);
+        showNotification(`加载图片文件失败: ${e.message || String(e)}`, 'error');
     } finally {
       setLoading(false);
       // 重置文件输入，允许重复选择相同文件
@@ -485,7 +504,7 @@ function OcrCheckPageContent() {
           if (Object.keys(localImageUrls).length > 0) {
             message += " 文件将与已加载的图片进行匹配。";
           }
-          alert(message);
+          showNotification(message);
         } finally {
           clearInterval(progressInterval);
         }
@@ -522,7 +541,7 @@ function OcrCheckPageContent() {
             return prevIndex;
           });
           console.log("已加载单个JSON:", fileName);
-          alert(`成功加载JSON文件: ${fileName}`);
+          showNotification(`成功加载JSON文件: ${fileName}`);
         } catch (parseError) {
           throw new Error('JSON文件解析失败，请检查文件格式');
         }
@@ -530,7 +549,7 @@ function OcrCheckPageContent() {
     } catch (e: any) {
       console.error("加载JSON文件出错:", e);
       setError(`加载JSON文件出错: ${e.message}`);
-      alert(`加载JSON文件失败: ${e.message}`);
+      showNotification(`加载JSON文件失败: ${e.message}`, 'error');
     } finally {
       setLoading(false);
       // 重置文件输入，允许重复选择相同文件
@@ -723,17 +742,12 @@ function OcrCheckPageContent() {
       
       // 使用setTimeout避免阻塞UI线程
       setTimeout(() => {
-        // 检查DOM是否仍然存在且可访问
-        if (typeof alert === 'function') {
-          alert(`已重置所有本地数据\n\n清理统计:\n- Blob URL: ${revokedCount}个成功, ${failedCount}个失败\n- 文件数据: ${Object.keys(localImageUrls).length}个文件`);
-        }
+        showNotification(`已重置所有本地数据\n清理统计:\n- Blob URL: ${revokedCount}个成功, ${failedCount}个失败\n- 文件数据: ${Object.keys(localImageUrls).length}个文件`);
       }, 100);
       
     } catch (error) {
       console.error('重置本地数据时发生错误:', error);
-      if (typeof alert === 'function') {
-        alert('重置数据时发生错误，请刷新页面重试');
-      }
+      showNotification('重置数据时发生错误，请刷新页面重试', 'error');
     }
   }, [localImageUrls]);
   
@@ -1077,7 +1091,30 @@ function OcrCheckPageContent() {
   ];
 
   return (
-    <div className="flex flex-col flex-grow">
+    <div className="flex flex-col flex-grow relative">
+      {/* 通知组件 - 优化样式和显示效果 */}
+      {notification && (
+        <div 
+          className="fixed top-4 left-1/2 p-4 rounded-lg shadow-lg z-[1000] transition-all duration-300 ease-in-out"
+          style={{
+            minWidth: '250px',
+            backgroundColor: notification.type === 'success' ? '#10b981' : 
+                          notification.type === 'error' ? '#ef4444' : '#3b82f6',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            opacity: 1,
+            transform: 'translateX(-50%)',
+            transition: 'all 0.3s ease-in-out'
+          }}
+        >
+          <div className="flex items-center">
+            {notification.type === 'success' && <span className="mr-2">✅</span>}
+            {notification.type === 'error' && <span className="mr-2">❌</span>}
+            {notification.type === 'info' && <span className="mr-2">ℹ️</span>}
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
       {/* Top Toolbar spanning both panes */}
       <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-300 flex justify-between items-center">
         {/* Left controls */}
@@ -1086,27 +1123,27 @@ function OcrCheckPageContent() {
           <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
             <input
               type="file"
-              accept=".zip"
+              accept=".zip,.png,.jpg,.jpeg"
               onChange={handleImageZipUpload}
               className="hidden"
               id="imageZipUpload"
             />
             <label htmlFor="imageZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer transition-all duration-200 transform hover:scale-105">
               <span className="flex items-center">
-                📁 导入图片 ZIP
+                📁 导入图片 ZIP/单个图片
               </span>
             </label>
 
             <input
               type="file"
-              accept=".zip"
+              accept=".zip,.json"
               onChange={handleJsonZipUpload}
               className="hidden"
               id="jsonZipUpload"
             />
             <label htmlFor="jsonZipUpload" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded cursor-pointer transition-all duration-200 transform hover:scale-105">
               <span className="flex items-center">
-                📄 导入 JSON ZIP
+                📄 导入 JSON ZIP/单个JSON
               </span>
             </label>
           </div>
