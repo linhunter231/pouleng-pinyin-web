@@ -10,7 +10,7 @@
   "dependencies": {
     "image-size": "^2.0.2",
     "js-yaml": "^4.1.0",
-    "next": "15.5.5",
+    "next": "15.5.7",
     "opencc-js": "^1.0.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
