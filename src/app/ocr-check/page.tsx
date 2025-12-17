@@ -392,7 +392,7 @@ function OcrCheckPageContent() {
           });
         } catch (urlError) {
           console.error('创建blob URL时出错:', urlError);
-          throw new Error(`创建图片URL失败: ${urlError.message}`);
+          throw new Error(`创建图片URL失败: ${(urlError as Error).message}`);
         }
         
         const fileName = file.name.replace(/\.[^/.]+$/, "");
