@@ -8,6 +8,60 @@ export interface PinyinDetail {
   fromSimplified?: boolean; // Mark if this pinyin came from a simplified-form dictionary match
 }
 
+// 平水韵相关类型
+export interface PingShuiYunEntry {
+  tone: string;   // 声调：平/上/去/入
+  yunbu: string;  // 韵部：如"八庚"
+  meaning: string; // 释义
+}
+
+// 平水韵字典类型：字 -> 读音列表
+export type PingShuiYunDict = Record<string, string[][]>;
+
+// 加载平水韵字典
+export const loadPingShuiYunDict = async (filePath: string): Promise<PingShuiYunDict> => {
+  try {
+    const response = await fetch(filePath);
+    if (!response.ok) {
+      throw new Error(`Failed to load pingShuiYun dict: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error loading pingShuiYun dict:', error);
+    return {};
+  }
+};
+
+// 查询单个字的平水韵（支持简体转繁体查询）
+export const lookupPingShuiYun = (dict: PingShuiYunDict, char: string): PingShuiYunEntry[] => {
+  // 先直接查找
+  let entries = dict[char];
+
+  // 如果没找到，尝试简体转繁体
+  if (!entries) {
+    const traditionalChar = converter(char);
+    if (traditionalChar !== char) {
+      entries = dict[traditionalChar];
+    }
+  }
+
+  // 如果还没找到，尝试繁体转简体
+  if (!entries) {
+    const simplifiedChar = t2sConverter(char);
+    if (simplifiedChar !== char) {
+      entries = dict[simplifiedChar];
+    }
+  }
+
+  if (!entries) return [];
+
+  return entries.map((entry: string[]) => ({
+    tone: entry[0] || '',
+    yunbu: entry[1] || '',
+    meaning: entry[2] || '',
+  }));
+};
+
 export const parseDictionaryFile = async (fileContent: string, sourceType: 'NewDictionary' | 'pouleng'): Promise<DictionaryEntry[]> => {
   const lines = fileContent.split('\n');
   const localDictionaryMap = new Map<string, DictionaryEntry>();
@@ -83,6 +137,7 @@ export interface PinyinSegment {
   isTraditionalMatch?: boolean; // Whether the displayed unit should show traditional alongside
   simplified?: string; // Optional simplified form when different from input
   isSimplifiedMatch?: boolean; // Whether the displayed unit should show simplified alongside
+  pingShuiYun?: PingShuiYunEntry[]; // 平水韵信息
 }
 
 // Function to check if a character/word is simplified

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { DictionaryEntry, lookupPinyinForSentence, searchDictionary, PinyinSegment, sortPinyins } from '../data/dictionary';
+import React, { useState, useEffect, useRef } from 'react';
+import { DictionaryEntry, lookupPinyinForSentence, searchDictionary, PinyinSegment, sortPinyins, loadPingShuiYunDict, lookupPingShuiYun, PingShuiYunDict, PingShuiYunEntry } from '../data/dictionary';
 
 interface DictionarySearchProps {
   initialDictionary: DictionaryEntry[];
@@ -16,6 +16,28 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [readingPreference, setReadingPreference] = useState<'文' | '白' | undefined>('文'); // New state for reading preference
   const [showDebug, setShowDebug] = useState(false); // Debug panel toggle
   const [copyFeedback, setCopyFeedback] = useState(''); // New state for copy feedback
+  const [showPingShuiYun, setShowPingShuiYun] = useState(true); // 平水韵显示开关，默认开启
+  const pingShuiYunDictRef = useRef<PingShuiYunDict | null>(null);
+  const [pingShuiYunSelections, setPingShuiYunSelections] = useState<Record<string, number>>({}); // 平水韵多音字选中状态
+
+  // 平水韵声调映射为平/仄
+  const toneToPingZe = (tone: string): string => {
+    return tone === '平' ? '平' : '仄';
+  };
+
+  // 处理平水韵多音字点击
+  const handlePingShuiYunClick = (key: string, entryIndex: number) => {
+    setPingShuiYunSelections(prev => ({ ...prev, [key]: entryIndex }));
+  };
+
+  // 获取排序后的平水韵条目（选中的排最前）
+  const getSortedPsyEntries = (entries: PingShuiYunEntry[], selectedKey: string): { entry: PingShuiYunEntry; originalIndex: number }[] => {
+    const selectedIndex = pingShuiYunSelections[selectedKey] ?? 0;
+    if (entries.length <= 1) return entries.map((entry, i) => ({ entry, originalIndex: i }));
+    const selected = entries[selectedIndex];
+    const rest = entries.map((e, i) => ({ entry: e, originalIndex: i })).filter(({ originalIndex }) => originalIndex !== selectedIndex);
+    return [{ entry: selected, originalIndex: selectedIndex }, ...rest];
+  };
 
   useEffect(() => {
     setCurrentDictionary(initialDictionary);
@@ -33,6 +55,19 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
       setShowDebug(true);
     }
   }, []);
+
+  // 加载平水韵字典
+  useEffect(() => {
+    loadPingShuiYunDict('/dictionaries/baseCharDict.json').then(dict => {
+      pingShuiYunDictRef.current = dict;
+    });
+  }, []);
+
+  // 获取一个字的平水韵信息
+  const getPingShuiYunForChar = (char: string): PingShuiYunEntry[] => {
+    if (!pingShuiYunDictRef.current || !char) return [];
+    return lookupPingShuiYun(pingShuiYunDictRef.current, char);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +237,15 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
               <span className="ml-1">无偏好</span>
             </label>
           </div>
+          <label className="ml-4 inline-flex items-center">
+            <input
+              type="checkbox"
+              className="form-checkbox"
+              checked={showPingShuiYun}
+              onChange={(e) => setShowPingShuiYun(e.target.checked)}
+            />
+            <span className="ml-1">平水韵</span>
+          </label>
         </div>
       </form>
 
@@ -216,6 +260,34 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                     <span key={pIndex} className="text-blue-700 text-lg">{pinyinDetail.value}</span>
                   ))}
                 </div>
+                {showPingShuiYun && (() => {
+                  const chars = entry.word.split('');
+                  return (
+                    <div className="mt-1 flex flex-wrap gap-3">
+                      {chars.map((ch, ci) => {
+                        const psyEntries = getPingShuiYunForChar(ch);
+                        if (psyEntries.length === 0) return null;
+                        const psyKey = `word-${index}-${ci}`;
+                        const sortedEntries = getSortedPsyEntries(psyEntries, psyKey);
+                        return (
+                          <div key={ci} className="text-xs flex flex-col">
+                            <span className="text-gray-600">{ch}</span>
+                            {sortedEntries.map(({ entry: e, originalIndex }, si) => (
+                              <span
+                                key={originalIndex}
+                                className={si === 0 ? 'text-purple-600 cursor-pointer font-bold' : 'text-purple-400 cursor-pointer'}
+                                onClick={() => handlePingShuiYunClick(psyKey, originalIndex)}
+                                title={e.meaning || ''}
+                              >
+                                {toneToPingZe(e.tone)} {e.tone} {e.yunbu}{e.meaning ? `(${e.meaning})` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -312,6 +384,35 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
                               调试: {segment.type === 'char' ? `char=${segment.char}` : `word=${segment.word}`} | traditional={segment.traditional || ''} | isTraditionalMatch={segment.isTraditionalMatch ? 'true' : 'false'} | simplified={segment.simplified || ''} | isSimplifiedMatch={segment.isSimplifiedMatch ? 'true' : 'false'} | dictionaryMatchWord={segment.dictionaryMatchWord || ''}
                             </div>
                           )}
+                          {showPingShuiYun && (() => {
+                            const segText = segment.type === 'char' ? segment.char : segment.word;
+                            if (!segText) return null;
+                            const chars = segText.split('');
+                            return (
+                              <div className="mt-1 w-full text-center">
+                                {chars.map((ch, ci) => {
+                                  const psyEntries = getPingShuiYunForChar(ch);
+                                  if (psyEntries.length === 0) return <div key={ci} className="text-xs text-gray-400 min-h-[1.2em]">&nbsp;</div>;
+                                  const psyKey = `${lineIndex}-${segmentIndex}-${ci}`;
+                                  const sortedEntries = getSortedPsyEntries(psyEntries, psyKey);
+                                  return (
+                                    <div key={ci} className="flex flex-col min-h-[1.2em]">
+                                      {sortedEntries.map(({ entry, originalIndex }, si) => (
+                                        <span
+                                          key={originalIndex}
+                                          className={si === 0 ? 'text-xs text-purple-600 cursor-pointer font-bold' : 'text-xs text-purple-400 cursor-pointer'}
+                                          onClick={() => handlePingShuiYunClick(psyKey, originalIndex)}
+                                          title={entry.meaning || ''}
+                                        >
+                                          {toneToPingZe(entry.tone)} {entry.tone} {entry.yunbu}{entry.meaning ? `(${entry.meaning})` : ''}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                           {segment.type === 'word' && segment.word && segment.word.length > 1 && showAllPinyins && segment.charPinyinDetails && (
                             <div className="flex flex-col items-center mt-2 text-sm text-gray-600"> {/* Outer container for char-pinyin pairs */}
                               <div className="flex justify-center w-full"> {/* Row for pinyins */}
