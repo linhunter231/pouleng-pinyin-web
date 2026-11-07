@@ -145,7 +145,7 @@ const isSimplified = (text: string): boolean => {
   return t2sConverter(converter(text)) === text;
 };
 
-export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence: string, globalReadingPreference: '文' | '白' | undefined): PinyinSegment[] => {
+export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence: string, globalReadingPreference: '文' | '白' | undefined, charByChar: boolean = false): PinyinSegment[] => {
   const results: PinyinSegment[] = [];
   let currentIndex = 0;
 
@@ -165,7 +165,9 @@ export const lookupPinyinForSentence = (dictionary: DictionaryEntry[], sentence:
 
     // Try to match multi-character words first
     // Iterate from longest possible word to shortest (1 character)
-    for (let len = sentence.length - currentIndex; len >= 1; len--) {
+    // If charByChar is true, only try 1 character at a time
+    const maxLen = charByChar ? 1 : (sentence.length - currentIndex);
+    for (let len = maxLen; len >= 1; len--) {
       const currentInputWord = sentence.substring(currentIndex, currentIndex + len);
       const isCurrentInputSimplified = isSimplified(currentInputWord);
 

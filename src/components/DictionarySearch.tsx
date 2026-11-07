@@ -19,6 +19,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
   const [showPingShuiYun, setShowPingShuiYun] = useState(true); // 平水韵显示开关，默认开启
   const pingShuiYunDictRef = useRef<PingShuiYunDict | null>(null);
   const [pingShuiYunSelections, setPingShuiYunSelections] = useState<Record<string, number>>({}); // 平水韵多音字选中状态
+  const [charByChar, setCharByChar] = useState(false); // 不连词模式，逐字查询
 
   // 平水韵声调映射为平/仄
   const toneToPingZe = (tone: string): string => {
@@ -91,7 +92,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
         if (line.trim() === '') {
           resultsPerLine.push([]); // Add an empty array for empty lines
         } else {
-          let segments = lookupPinyinForSentence(currentDictionary, line, readingPreference);
+          let segments = lookupPinyinForSentence(currentDictionary, line, readingPreference, charByChar);
           // Sort pinyins within each segment based on preference
           segments = segments.map(segment => ({
             ...segment,
@@ -245,6 +246,15 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
               onChange={(e) => setShowPingShuiYun(e.target.checked)}
             />
             <span className="ml-1">平水韵</span>
+          </label>
+          <label className="ml-4 inline-flex items-center">
+            <input
+              type="checkbox"
+              className="form-checkbox"
+              checked={charByChar}
+              onChange={(e) => setCharByChar(e.target.checked)}
+            />
+            <span className="ml-1">不连词</span>
           </label>
         </div>
       </form>
