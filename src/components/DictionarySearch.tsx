@@ -180,31 +180,31 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={4} // 设置为多行文本框，并指定行数
         />
-        <div className="flex items-center mt-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap shrink-0"
           >
             查询
           </button>
           <button
             type="button"
             onClick={() => setShowAllPinyins(!showAllPinyins)}
-            className="ml-2 px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 whitespace-nowrap shrink-0"
           >
             {showAllPinyins ? '隐藏多余拼音' : '显示所有拼音'}
           </button>
           <button
             type="button"
             onClick={handleCopyResults}
-            className="ml-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 whitespace-nowrap shrink-0"
           >
             复制结果
           </button>
-          {copyFeedback && <span className="ml-2 text-green-600">{copyFeedback}</span>}
-          <div className="ml-4 flex items-center">
-            <span className="mr-2">拼音偏好:</span>
-            <label className="inline-flex items-center">
+          {copyFeedback && <span className="text-green-600 whitespace-nowrap">{copyFeedback}</span>}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="whitespace-nowrap">拼音偏好:</span>
+            <label className="inline-flex items-center whitespace-nowrap">
               <input
                 type="radio"
                 className="form-radio"
@@ -215,7 +215,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
               />
               <span className="ml-1">文读</span>
             </label>
-            <label className="inline-flex items-center ml-2">
+            <label className="inline-flex items-center whitespace-nowrap">
               <input
                 type="radio"
                 className="form-radio"
@@ -226,7 +226,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
               />
               <span className="ml-1">白读</span>
             </label>
-            <label className="inline-flex items-center ml-2">
+            <label className="inline-flex items-center whitespace-nowrap">
               <input
                 type="radio"
                 className="form-radio"
@@ -238,7 +238,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
               <span className="ml-1">无偏好</span>
             </label>
           </div>
-          <label className="ml-4 inline-flex items-center">
+          <label className="inline-flex items-center whitespace-nowrap">
             <input
               type="checkbox"
               className="form-checkbox"
@@ -247,7 +247,7 @@ const DictionarySearch: React.FC<DictionarySearchProps> = ({ initialDictionary }
             />
             <span className="ml-1">平水韵</span>
           </label>
-          <label className="ml-4 inline-flex items-center">
+          <label className="inline-flex items-center whitespace-nowrap">
             <input
               type="checkbox"
               className="form-checkbox"
